@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvSpO2;
     public FirebaseAuth mAuth;
     private FirebaseFirestore firestore;
+    private FirebaseUser currentUser;
     private ListenerRegistration registration;
 
     @Override
@@ -61,10 +62,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mAuth = FirebaseAuth.getInstance();
-        mAuth.useEmulator("10.0.2.2", 9099);
+//        mAuth.useEmulator("10.0.2.2", 9099);
 
         firestore = FirebaseFirestore.getInstance();
-        emulatorSettings();
+//        emulatorSettings();
 
         info = findViewById(R.id.tv_main);
         info2 = findViewById(R.id.tv_info);
@@ -79,8 +80,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+
         // Check if user is signed in (non-null) and update UI accordingly.
-        FirebaseUser currentUser = mAuth.getCurrentUser();
+        currentUser = mAuth.getCurrentUser();
         if(currentUser == null){
             //TODO: Proceed to SignIn Menu
             startActivity(new Intent(getApplicationContext(),LoginActivity.class));
@@ -110,7 +112,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        registration.remove();
+        if(registration != null)
+            registration.remove();
     }
 
     @Override
@@ -135,19 +138,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getDevices(){
-        DocumentReference docRef = firestore.collection("users").document("Vhft8HcSWGF1wqNISLyx");
-
-        docRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        firestore.collection("users")
+                .whereEqualTo("uid",currentUser.getUid())
+                .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
                 if (task.isSuccessful()) {
                     // Document found in the offline cache
-                    DocumentSnapshot document = task.getResult();
+                    DocumentSnapshot document = null;
+                    Log.d(TAG,task.getResult().toString());
+                    for(QueryDocumentSnapshot doc: task.getResult() ){
+                        document = doc;
+                        Log.d(TAG,doc.getId() + doc.getData());
+                    }
                     if(!document.contains("devices")){
                         info2.setText("No devices to show.\nAdd a device!");
                     }
                     else{
                         info2.setVisibility(View.GONE);
+                        DocumentReference docRef = firestore.collection("users").document(document.getId());
                         initShowLatestReading(docRef,document.get("active_device").toString());
                         Log.d(TAG,document.get("active_device").toString());
                     }

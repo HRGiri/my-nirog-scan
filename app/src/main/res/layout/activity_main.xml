@@ -34,7 +34,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="32dp"
         android:layout_marginStart="32dp"
-        android:visibility="visible"
+        android:visibility="invisible"
         app:cardCornerRadius="8dp"
         app:cardElevation="8dp"
         app:contentPadding="8dp"
@@ -47,13 +47,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tv_last_read"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingBottom="8dp"
-                android:text="Last read: " />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -136,6 +129,13 @@
                 </LinearLayout>
 
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_last_read"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="8dp"
+                android:text="Last read: " />
 
         </LinearLayout>
 

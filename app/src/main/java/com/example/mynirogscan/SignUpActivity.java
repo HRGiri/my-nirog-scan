@@ -16,11 +16,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.messaging.FirebaseMessaging;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -35,6 +43,9 @@ public class SignUpActivity extends AppCompatActivity {
 
 
     private FirebaseAuth mAuth;
+    private FirebaseFirestore firestore;
+    private String token = "";
+    private FirebaseUser currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +53,8 @@ public class SignUpActivity extends AppCompatActivity {
         setContentView(R.layout.activity_sign_up);
 
         mAuth = FirebaseAuth.getInstance();
-        mAuth.useEmulator("10.0.2.2", 9099);
+        firestore = FirebaseFirestore.getInstance();
+//        mAuth.useEmulator("10.0.2.2", 9099);
 
         emailInput = findViewById(R.id.et_email);
         passwordInput = findViewById(R.id.et_pass);
@@ -133,9 +145,9 @@ public class SignUpActivity extends AppCompatActivity {
                             Log.d(TAG, "createUserWithEmail:success");
                             Toast.makeText(SignUpActivity.this, "Create User Success!",
                                     Toast.LENGTH_SHORT).show();
-                            FirebaseUser user = mAuth.getCurrentUser();
+                            currentUser = mAuth.getCurrentUser();
                             //TODO: Upload name and phone. Send verification to email and phone. Proceed to Main Menu
-                            updateProfile(user,name);
+                            updateProfile(currentUser,name);
                         } else {
                             // If sign in fails, display a message to the user.
                             Log.w(TAG, "createUserWithEmail:failure", task.getException());
@@ -176,8 +188,53 @@ public class SignUpActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<Void> task) {
                         // Email sent
                         Toast.makeText(getApplicationContext(),"Please verify your email",Toast.LENGTH_LONG).show();
+                        test(currentUser);
                     }
                 });
         // [END send_email_verification]
+    }
+
+    private void test(FirebaseUser currentUser){
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(new OnCompleteListener<String>() {
+                    @Override
+                    public void onComplete(@NonNull Task<String> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                            return;
+                        }
+
+                        // Get new FCM registration token
+                        token = task.getResult();
+                        Log.d(TAG,token);
+                        addUser(currentUser.getDisplayName(),currentUser.getEmail());
+                    }
+                });
+    }
+    private void addUser(String name, String email){
+        // Create a new user with a first and last name
+        Map<String, Object> user = new HashMap<>();
+        user.put("name", name);
+        user.put("email", email);
+        user.put("FCMToken", token);
+        user.put("uid",currentUser.getUid());
+        Log.d(TAG,"User to be added");
+        // Add a new document with a generated ID
+        firestore.collection("users")
+                .add(user)
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        Log.d(TAG, "DocumentSnapshot added with ID: " + documentReference.getId());
+                        Toast.makeText(getApplicationContext(),"Account Registered!",Toast.LENGTH_SHORT).show();
+                        finishActivity(1);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Error adding document", e);
+                    }
+                });
     }
 }

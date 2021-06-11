@@ -1,6 +1,7 @@
 package com.example.mynirogscan;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
@@ -71,9 +72,16 @@ public class LoginActivity extends AppCompatActivity {
         signupButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(getApplicationContext(),SignUpActivity.class));
+                startActivityForResult(new Intent(getApplicationContext(),SignUpActivity.class),1);
             }
         });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == 1)
+            finish();
     }
 
     public ActionCodeSettings buildActionCodeSettings() {
