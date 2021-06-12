@@ -10,15 +10,34 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyNirogScan2"
         android:usesCleartextTraffic="true">
-        <activity android:name=".SignUpActivity"></activity>
+        <activity android:name=".EmailRedirect">
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.VIEW"/>-->
+<!--                <category android:name="android.intent.category.DEFAULT" />-->
+<!--                <category android:name="android.intent.category.BROWSABLE" />-->
+<!--                <data-->
+<!--                    android:host="nirogindia.page.link"-->
+<!--                    android:scheme="https" />-->
+<!--            </intent-filter>-->
+        </activity>
+        <activity android:name=".SignUpActivity" />
         <activity android:name=".LoginActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="nirogindia.page.link"
+                    android:scheme="https" />
             </intent-filter>
         </activity>
     </application>
+
+    <uses-permission android:name="android.permission.INTERNET" />
 
 </manifest>

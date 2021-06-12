@@ -220,12 +220,12 @@ public class SignUpActivity extends AppCompatActivity {
         user.put("uid",currentUser.getUid());
         Log.d(TAG,"User to be added");
         // Add a new document with a generated ID
-        firestore.collection("users")
-                .add(user)
-                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+        firestore.collection("users").document(currentUser.getUid())
+                .set(user)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
-                    public void onSuccess(DocumentReference documentReference) {
-                        Log.d(TAG, "DocumentSnapshot added with ID: " + documentReference.getId());
+                    public void onSuccess(Void unused) {
+                        Log.d(TAG, "DocumentSnapshot added!");
                         Toast.makeText(getApplicationContext(),"Account Registered!",Toast.LENGTH_SHORT).show();
                         finishActivity(1);
                     }
