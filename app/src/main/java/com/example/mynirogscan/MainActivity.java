@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -13,6 +14,7 @@ import android.widget.TextView;
 
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
+import com.firebase.ui.auth.util.ExtraConstants;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -20,6 +22,8 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.dynamiclinks.FirebaseDynamicLinks;
+import com.google.firebase.dynamiclinks.PendingDynamicLinkData;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -85,28 +89,76 @@ public class MainActivity extends AppCompatActivity {
         currentUser = mAuth.getCurrentUser();
         if(currentUser == null){
             //TODO: Proceed to SignIn Menu
-            startActivity(new Intent(getApplicationContext(),LoginActivity.class));
+//            startActivity(new Intent(getApplicationContext(),LoginActivity.class));
             // Choose authentication providers
-//            List<AuthUI.IdpConfig> providers = Arrays.asList(
-//                    new AuthUI.IdpConfig.EmailBuilder().enableEmailLinkSignIn()
-//                    .setActionCodeSettings(buildActionCodeSettings()).build(),
-//                    new AuthUI.IdpConfig.GoogleBuilder().build());
-//
-//            // Create and launch sign-in intent
-//            startActivityForResult(
-//                    AuthUI.getInstance()
-//                            .createSignInIntentBuilder()
-//                            .setAvailableProviders(providers)
-//                            .build(),
-//                    RC_SIGN_IN);
+            List<AuthUI.IdpConfig> providers = Arrays.asList(
+                    new AuthUI.IdpConfig.EmailBuilder().enableEmailLinkSignIn()
+                    .setActionCodeSettings(buildActionCodeSettings()).build(),
+                    new AuthUI.IdpConfig.GoogleBuilder().build());
+
+            // Create and launch sign-in intent
+            if (AuthUI.canHandleIntent(getIntent())) {
+                Log.d(TAG,"Can Handle Intent");
+                verifyEmailSignIn(providers);
+            }
+            else {
+                startActivityForResult(
+                        AuthUI.getInstance()
+                                .createSignInIntentBuilder()
+                                .setAvailableProviders(providers)
+                                .build(),
+                        RC_SIGN_IN);
+            }
         }
         else {
             Log.d(TAG,currentUser.getEmail());
             info.setText("Hello " + currentUser.getDisplayName());
-            getDevices();
+//            getDevices();
 //            test(currentUser);
 
         }
+    }
+
+    private void verifyEmailSignIn(List<AuthUI.IdpConfig> providers) {
+        if (getIntent().getExtras() == null) {
+            return;
+        }
+        FirebaseDynamicLinks.getInstance()
+                .getDynamicLink(getIntent())
+                .addOnSuccessListener(this, new OnSuccessListener<PendingDynamicLinkData>() {
+                    @Override
+                    public void onSuccess(PendingDynamicLinkData pendingDynamicLinkData) {
+                        // Get deep link from result (may be null if no link is found)
+                        Uri deepLink = null;
+                        if (pendingDynamicLinkData != null) {
+                            deepLink = pendingDynamicLinkData.getLink();
+                        }
+
+                        Log.d(TAG,deepLink.toString());
+                        // Handle the deep link. For example, open the linked
+                        // content, or apply promotional credit to the user's
+                        // account.
+                        // ...
+                        if (deepLink != null) {
+                            startActivityForResult(
+                                    AuthUI.getInstance()
+                                            .createSignInIntentBuilder()
+                                            .setEmailLink(deepLink.toString())
+                                            .setAvailableProviders(providers)
+                                            .build(),
+                                    RC_SIGN_IN);
+                        }
+                    }
+                })
+                .addOnFailureListener(this, new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "getDynamicLink:onFailure", e);
+                    }
+                });
+//        String link = getIntent().getExtras().getString(ExtraConstants.EMAIL_LINK_SIGN_IN);
+//        Log.d(TAG, String.valueOf(link == null));
+
     }
 
     @Override
@@ -127,6 +179,7 @@ public class MainActivity extends AppCompatActivity {
                 // Successfully signed in
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
                 Log.d(TAG,user.getEmail());
+                info.setText("Hello " + user.getDisplayName());
                 // ...
             } else {
                 // Sign in failed. If response is null the user canceled the
@@ -205,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
                 ActionCodeSettings.newBuilder()
                         // URL you want to redirect back to. The domain (www.example.com) for this
                         // URL must be whitelisted in the Firebase Console.
-                        .setUrl("https://www.nirogindia.net/auth")
+                        .setUrl("https://nirogindia.net")
                         // This must be true
                         .setHandleCodeInApp(true)
                         .setAndroidPackageName(
