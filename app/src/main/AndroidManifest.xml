@@ -20,7 +20,18 @@
 <!--                    android:scheme="https" />-->
 <!--            </intent-filter>-->
         </activity>
-        <activity android:name=".SignUpActivity" />
+        <activity
+            android:name=".SignUpActivity"
+            android:noHistory="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="nirogindia.page.link"
+                    android:scheme="https" />
+            </intent-filter>
+        </activity>
         <activity android:name=".LoginActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>
@@ -28,12 +39,7 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
 
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:host="nirogindia.page.link"
-                    android:scheme="https" />
+
             </intent-filter>
         </activity>
     </application>

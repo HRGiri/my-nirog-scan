@@ -34,6 +34,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.ArrayList;
@@ -96,19 +97,14 @@ public class MainActivity extends AppCompatActivity {
                     .setActionCodeSettings(buildActionCodeSettings()).build(),
                     new AuthUI.IdpConfig.GoogleBuilder().build());
 
-            // Create and launch sign-in intent
-            if (AuthUI.canHandleIntent(getIntent())) {
-                Log.d(TAG,"Can Handle Intent");
-                verifyEmailSignIn(providers);
-            }
-            else {
-                startActivityForResult(
-                        AuthUI.getInstance()
-                                .createSignInIntentBuilder()
-                                .setAvailableProviders(providers)
-                                .build(),
-                        RC_SIGN_IN);
-            }
+
+            startActivityForResult(
+                    AuthUI.getInstance()
+                            .createSignInIntentBuilder()
+                            .setAvailableProviders(providers)
+                            .build(),
+                    RC_SIGN_IN);
+
         }
         else {
             Log.d(TAG,currentUser.getEmail());
@@ -119,47 +115,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void verifyEmailSignIn(List<AuthUI.IdpConfig> providers) {
-        if (getIntent().getExtras() == null) {
-            return;
-        }
-        FirebaseDynamicLinks.getInstance()
-                .getDynamicLink(getIntent())
-                .addOnSuccessListener(this, new OnSuccessListener<PendingDynamicLinkData>() {
-                    @Override
-                    public void onSuccess(PendingDynamicLinkData pendingDynamicLinkData) {
-                        // Get deep link from result (may be null if no link is found)
-                        Uri deepLink = null;
-                        if (pendingDynamicLinkData != null) {
-                            deepLink = pendingDynamicLinkData.getLink();
-                        }
-
-                        Log.d(TAG,deepLink.toString());
-                        // Handle the deep link. For example, open the linked
-                        // content, or apply promotional credit to the user's
-                        // account.
-                        // ...
-                        if (deepLink != null) {
-                            startActivityForResult(
-                                    AuthUI.getInstance()
-                                            .createSignInIntentBuilder()
-                                            .setEmailLink(deepLink.toString())
-                                            .setAvailableProviders(providers)
-                                            .build(),
-                                    RC_SIGN_IN);
-                        }
-                    }
-                })
-                .addOnFailureListener(this, new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.w(TAG, "getDynamicLink:onFailure", e);
-                    }
-                });
-//        String link = getIntent().getExtras().getString(ExtraConstants.EMAIL_LINK_SIGN_IN);
-//        Log.d(TAG, String.valueOf(link == null));
-
-    }
 
     @Override
     protected void onStop() {
@@ -178,8 +133,28 @@ public class MainActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 // Successfully signed in
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                firestore.collection("users").document(user.getUid())
+                        .get()
+                        .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                if(task.isSuccessful()) {
+                                    if (task.getResult().exists()) {
+                                        Log.d(TAG, "Google Found it");
+                                        createFCMtoken();
+
+                                    } else {
+                                        Log.d(TAG, "Google sign In Lets register you");
+                                        Intent intent = new Intent(MainActivity.this,
+                                                SignUpActivity.class);
+                                        startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                                    }
+                                } else  {
+                                    Log.d(TAG,"Error getting Data : ", task.getException());
+                                }
+                            }
+                        });
                 Log.d(TAG,user.getEmail());
-                info.setText("Hello " + user.getDisplayName());
                 // ...
             } else {
                 // Sign in failed. If response is null the user canceled the
@@ -190,6 +165,46 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void createFCMtoken(){
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(new OnCompleteListener<String>() {
+                    @Override
+                    public void onComplete(@NonNull Task<String> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                            return;
+                        }
+
+                        // Get new FCM registration token
+                        token = task.getResult();
+                        Log.d(TAG,"Token created"+token);
+                        updateFCMToken();
+                    }
+                });
+    }
+
+    //Update FCM Token in DataBase.
+    private void updateFCMToken(){
+        Map<String, String> user = new HashMap<>();
+        user.put("FCMToken", token);
+        Log.d(TAG, "FCM token s! + "+user.toString());
+        FirebaseUser curruser = FirebaseAuth.getInstance().getCurrentUser();
+        firestore.collection("users").document(curruser.getUid())
+                .set(user, SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        Log.d(TAG, "FCM token updated! + "+token);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Error adding document", e);
+                    }
+                });
+
+    }
     private void getDevices(){
         firestore.collection("users")
                 .whereEqualTo("uid",currentUser.getUid())
