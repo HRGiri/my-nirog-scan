@@ -113,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
         else {
             Log.d(TAG,currentUser.getEmail());
             info.setText("Hello " + currentUser.getDisplayName());
+            startActivity(new Intent(MainActivity.this,AddDeviceActivity.class));
 //            getDevices();
 //            test(currentUser);
 
