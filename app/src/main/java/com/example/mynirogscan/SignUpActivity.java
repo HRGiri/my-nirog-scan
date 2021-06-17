@@ -60,6 +60,13 @@ public class SignUpActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
 
+        registerButton = findViewById(R.id.button_register);
+        orgInput = findViewById(R.id.et_organization);
+        nameInput = findViewById(R.id.et_name);
+        lastnameInput = findViewById(R.id.et_name_last);
+        phoneInput = findViewById(R.id.et_phoneNo);
+        progressBar = findViewById(R.id.progressBar2);
+        constraintLayout = findViewById(R.id.constraintlayout);
 
 
         List<AuthUI.IdpConfig> providers = Arrays.asList(
@@ -78,15 +85,6 @@ public class SignUpActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         firestore = FirebaseFirestore.getInstance();
 //        mAuth.useEmulator("10.0.2.2", 9099);
-
-
-        registerButton = findViewById(R.id.button_register);
-        orgInput = findViewById(R.id.et_organization);
-        nameInput = findViewById(R.id.et_name);
-        lastnameInput = findViewById(R.id.et_name_last);
-        phoneInput = findViewById(R.id.et_phoneNo);
-        progressBar = findViewById(R.id.progressBar2);
-        constraintLayout = findViewById(R.id.constraintlayout);
 
 
         progressBar.setVisibility(View.INVISIBLE);

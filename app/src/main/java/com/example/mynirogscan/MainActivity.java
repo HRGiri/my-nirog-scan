@@ -35,8 +35,10 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.Source;
 import com.google.firebase.messaging.FirebaseMessaging;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -58,7 +60,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvSpO2;
     public FirebaseAuth mAuth;
     private FirebaseFirestore firestore;
-    private FirebaseUser currentUser;
     private ListenerRegistration registration;
 
     @Override
@@ -87,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
 
         // Check if user is signed in (non-null) and update UI accordingly.
-        currentUser = mAuth.getCurrentUser();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
         if(currentUser == null){
             //TODO: Proceed to SignIn Menu
 //            startActivity(new Intent(getApplicationContext(),LoginActivity.class));
@@ -109,8 +110,7 @@ public class MainActivity extends AppCompatActivity {
         else {
             Log.d(TAG,currentUser.getEmail());
             info.setText("Hello " + currentUser.getDisplayName());
-//            getDevices();
-//            test(currentUser);
+            getDevices();
 
         }
     }
@@ -147,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
                                         Log.d(TAG, "Google sign In Lets register you");
                                         Intent intent = new Intent(MainActivity.this,
                                                 SignUpActivity.class);
-                                        startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                                        startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
                                     }
                                 } else  {
                                     Log.d(TAG,"Error getting Data : ", task.getException());
@@ -206,31 +206,24 @@ public class MainActivity extends AppCompatActivity {
 
     }
     private void getDevices(){
-        firestore.collection("users")
-                .whereEqualTo("uid",currentUser.getUid())
-                .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        firestore.collection("users").document(currentUser.getUid())
+                .get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
-            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if (task.isSuccessful()) {
-                    // Document found in the offline cache
-                    DocumentSnapshot document = null;
-                    Log.d(TAG,task.getResult().toString());
-                    for(QueryDocumentSnapshot doc: task.getResult() ){
-                        document = doc;
-                        Log.d(TAG,doc.getId() + doc.getData());
-                    }
-                    if(!document.contains("devices")){
+            public void onSuccess(DocumentSnapshot document) {
+                if (document.exists()) {
+
+                    ArrayList<Map<String,String>> device_list = (ArrayList<Map<String, String>>) document.get("device_list");
+                    if(device_list == null) {
                         info2.setText("No devices to show.\nAdd a device!");
                     }
                     else{
                         info2.setVisibility(View.GONE);
-                        DocumentReference docRef = firestore.collection("users").document(document.getId());
-                        initShowLatestReading(docRef,document.get("active_device").toString());
-                        Log.d(TAG,document.get("active_device").toString());
+                        for(Map<String,String> value : device_list){
+                            Log.d(TAG,"map : "+value.get("name"));
+                        }
+//                        initShowLatestReading(docRef,document.get("active_device").toString());
                     }
-                    Log.d(TAG, "Document data: " + document.getData());
-                } else {
-                    Log.d(TAG, "Get failed: ", task.getException());
                 }
             }
         });
@@ -285,38 +278,6 @@ public class MainActivity extends AppCompatActivity {
         return actionCodeSettings;
     }
 
-    public void sendSignInLink(String email, ActionCodeSettings actionCodeSettings) {
-        // [START auth_send_sign_in_link]
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        auth.sendSignInLinkToEmail(email, actionCodeSettings)
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        if (task.isSuccessful()) {
-                            Log.d(TAG, "Email sent.");
-                        }
-                    }
-                });
-        // [END auth_send_sign_in_link]
-    }
-
-    private void test(FirebaseUser currentUser){
-        FirebaseMessaging.getInstance().getToken()
-                .addOnCompleteListener(new OnCompleteListener<String>() {
-                    @Override
-                    public void onComplete(@NonNull Task<String> task) {
-                        if (!task.isSuccessful()) {
-                            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
-                            return;
-                        }
-
-                        // Get new FCM registration token
-                        token = task.getResult();
-                        Log.d(TAG,token);
-                        addUser(currentUser.getDisplayName(),currentUser.getEmail());
-                    }
-                });
-    }
 
     public void emulatorSettings() {
         // [START fs_emulator_connect]
@@ -332,27 +293,4 @@ public class MainActivity extends AppCompatActivity {
         // [END fs_emulator_connect]
     }
 
-    private void addUser(String name, String email){
-        // Create a new user with a first and last name
-        Map<String, Object> user = new HashMap<>();
-        user.put("name", name);
-        user.put("email", email);
-        user.put("FCMToken", token);
-        Log.d(TAG,"User to be added");
-        // Add a new document with a generated ID
-        firestore.collection("users")
-                .add(user)
-                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-                    @Override
-                    public void onSuccess(DocumentReference documentReference) {
-                        Log.d(TAG, "DocumentSnapshot added with ID: " + documentReference.getId());
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.w(TAG, "Error adding document", e);
-                    }
-                });
-    }
 }
