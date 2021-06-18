@@ -3,6 +3,10 @@ package com.example.mynirogscan;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentOnAttachListener;
 
 import android.Manifest;
 import android.app.Activity;
@@ -19,16 +23,23 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelUuid;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,6 +57,8 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     private static final int PERMISSIONS_ACCESS_FINE_LOCATION = 3;
     private static final int ENABLE_BLUETOOTH_REQUEST_CODE = 4;
+    private static final int PERMISSIONS_ACCESS_WIFI_STATE = 5;
+    private static final int PERMISSIONS_CHANGE_WIFI_STATE = 6;
 
     private BluetoothManager bluetoothManager;
     private BluetoothAdapter bluetoothAdapter;
@@ -57,10 +70,18 @@ public class AddDeviceActivity extends AppCompatActivity {
     private boolean isBleScanning = false;
     private boolean isDeviceFound = false;
 
+    private ListView wifiList;
+    private WifiManager wifiManager;
+    BroadcastReceiver wifiScanReceiver;
+
     private String userID;
     private String deviceID;
     private String FCMtoken;
     private String displayName;
+    public String wifiSsid;
+    public String wifiPassword;
+
+    private FragmentManager fragmentManager;
 
     private TextView tvInfo;
 
@@ -69,22 +90,68 @@ public class AddDeviceActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_device);
 
+//        if (savedInstanceState == null) {
+//            fragmentManager = getSupportFragmentManager();
+//            fragmentManager.beginTransaction()
+//                    .setReorderingAllowed(true)
+//                    .add(R.id.fragmentContainerView, WiFiSelectFragment.class, null)
+//                    .commit();
+//        }
+        wifiList = findViewById(R.id.wifi_list);
         tvInfo = findViewById(R.id.tv_add_device_info);
-        tvInfo.setText("Connecting with Nirog Scan. Please wait...");
+//        tvInfo.setText("Connecting with Nirog Scan. Please wait...");
+        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
         bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
 
+        wifiScanReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context c, Intent intent) {
+                boolean success = intent.getBooleanExtra(
+                        WifiManager.EXTRA_RESULTS_UPDATED, false);
+                String action = intent.getAction();
+                if (WifiManager.SCAN_RESULTS_AVAILABLE_ACTION.equals(action)) {
+                    tvInfo.setText("Please select a WiFi Access Point to configure NirogScan");
+                    List<android.net.wifi.ScanResult> wifiDeviceList = wifiManager.getScanResults();
+                    ArrayList<String> deviceList = new ArrayList<>();
+                    for (android.net.wifi.ScanResult scanResult : wifiDeviceList) {
+                        deviceList.add(scanResult.SSID /*+ " - " + scanResult.capabilities*/);
+                    }
+//                    Toast.makeText(c, "Scan Complete", Toast.LENGTH_SHORT).show();
+                    final ArrayList<String> deviceListCopy = new ArrayList<>(deviceList);
+                    ArrayAdapter arrayAdapter = new ArrayAdapter(c, R.layout.wifi_list_item, deviceList.toArray());
+                    wifiList.setAdapter(arrayAdapter);
+                    wifiList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                        @Override
+                        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                            tvInfo.setText("Please enter the password for " + deviceListCopy.get(position) + " to continue");
+                            fragmentManager = getSupportFragmentManager();
+                            Bundle bundle = new Bundle();
+                            bundle.putString("ssid",deviceListCopy.get(position));
+                            fragmentManager.beginTransaction()
+                                    .setReorderingAllowed(true)
+                                    .add(R.id.fragmentContainerView, WiFiSelectFragment.class, bundle)
+                                    .commit();
+                            fragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks,false);
+
+                        }
+                    });
+                }
+            }
+        };
 
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+//        initWifiScan();
         if(bluetoothAdapter.isEnabled())
             startBleScan();
         else
             promptEnableBluetooth();
+
     }
 
     @Override
@@ -110,6 +177,52 @@ public class AddDeviceActivity extends AppCompatActivity {
                     Toast.makeText(AddDeviceActivity.this, "permission not granted", Toast.LENGTH_SHORT).show();
                     return;
                 }
+                break;
+            case PERMISSIONS_ACCESS_WIFI_STATE:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(AddDeviceActivity.this, "permission granted", Toast.LENGTH_SHORT).show();
+                    wifiManager.startScan();
+                } else {
+                    Toast.makeText(AddDeviceActivity.this, "permission not granted", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                break;
+        }
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+//        receiverWifi = new WiFiReceiver(wifiManager, wifiList);
+//        IntentFilter intentFilter = new IntentFilter();
+//        intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+//        registerReceiver(wifiScanReceiver, intentFilter);
+//        initWifiScan();
+    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+//        unregisterReceiver(wifiScanReceiver);
+    }
+
+
+    private void checkPermissions() {
+        while (true) {
+            if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        AddDeviceActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_ACCESS_FINE_LOCATION);
+            } else if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_WIFI_STATE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        AddDeviceActivity.this, new String[]{Manifest.permission.ACCESS_WIFI_STATE}, PERMISSIONS_ACCESS_WIFI_STATE
+                );
+            } else if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.CHANGE_WIFI_STATE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        AddDeviceActivity.this, new String[]{Manifest.permission.CHANGE_WIFI_STATE}, PERMISSIONS_CHANGE_WIFI_STATE
+                );
+            } else
                 break;
         }
     }
@@ -223,6 +336,38 @@ public class AddDeviceActivity extends AppCompatActivity {
         isBleScanning = false;
     }
 
+    private void initWifiScan(){
+//        checkPermissions();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        registerReceiver(wifiScanReceiver, intentFilter);
+
+        if (!wifiManager.isWifiEnabled()) {
+            Toast.makeText(getApplicationContext(), "Turning WiFi ON...", Toast.LENGTH_LONG).show();
+            wifiManager.setWifiEnabled(true);
+        }
+        getWifi();
+    }
+
+    private void getWifi() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(AddDeviceActivity.this, "location turned off", Toast.LENGTH_SHORT).show();
+                ActivityCompat.requestPermissions(AddDeviceActivity.this, new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_WIFI_STATE,
+                        Manifest.permission.CHANGE_WIFI_STATE
+                }, PERMISSIONS_ACCESS_WIFI_STATE);
+            } else {
+                wifiManager.startScan();
+            }
+        } else {
+            Toast.makeText(AddDeviceActivity.this, "scanning", Toast.LENGTH_SHORT).show();
+            wifiManager.startScan();
+        }
+    }
+
+
     private BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -268,7 +413,13 @@ public class AddDeviceActivity extends AppCompatActivity {
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
-            Log.i(BLE_TAG,"Characteristic: " + characteristic.toString() + " returned status: " + status);
+            if(status == BluetoothGatt.GATT_SUCCESS) {
+                Log.i(BLE_TAG, "Characteristic: " + characteristic.toString() + " write success! :)");
+                gatt.disconnect();
+            }
+            else {
+                Log.i(BLE_TAG, "Characteristic: " + characteristic.toString() + " write failed :( with status: " + status);
+            }
         }
 
         @Override
@@ -280,17 +431,28 @@ public class AddDeviceActivity extends AppCompatActivity {
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             super.onMtuChanged(gatt, mtu, status);
             Log.w(BLE_TAG, "Successfully changed mtu to " + mtu);
-            //TODO: Send config settings
-            userID = deviceID = FCMtoken = displayName = "xxx";
-            String message = userID + "," + deviceID + "," + FCMtoken + "," + displayName;
-//            byte[] payload = message.getBytes(StandardCharsets.UTF_8);
-            gatt.getService(UUID.fromString(SERVICE_UUID))
-                    .getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID))
-                    .setValue(message);
-            gatt.writeCharacteristic(gatt
-            .getService(UUID.fromString(SERVICE_UUID))
-            .getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID)));
+            initWifiScan();
 
         }
     };
+
+    FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks = new FragmentManager.FragmentLifecycleCallbacks() {
+        @Override
+        public void onFragmentDestroyed(@NonNull FragmentManager fm, @NonNull Fragment f) {
+            super.onFragmentDestroyed(fm, f);
+            Log.d(BLE_TAG,"SSID: " + wifiSsid + " Password: " + wifiPassword);
+            fragmentManager.unregisterFragmentLifecycleCallbacks(fragmentLifecycleCallbacks);
+            unregisterReceiver(wifiScanReceiver);
+            userID = deviceID = FCMtoken = displayName = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+            String message = userID + "," + deviceID + "," + FCMtoken + "," + displayName + "," + wifiSsid + "," + wifiPassword;
+//            byte[] payload = message.getBytes(StandardCharsets.UTF_8);
+            btGatt.getService(UUID.fromString(SERVICE_UUID))
+                    .getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID))
+                    .setValue(message);
+            btGatt.writeCharacteristic(btGatt
+                    .getService(UUID.fromString(SERVICE_UUID))
+                    .getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID)));
+        }
+    };
+
 }
