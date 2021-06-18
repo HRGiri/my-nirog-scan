@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -14,7 +13,6 @@ import android.widget.TextView;
 
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
-import com.firebase.ui.auth.util.ExtraConstants;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -22,8 +20,6 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.dynamiclinks.FirebaseDynamicLinks;
-import com.google.firebase.dynamiclinks.PendingDynamicLinkData;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -35,20 +31,18 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
-import com.google.firebase.firestore.Source;
 import com.google.firebase.messaging.FirebaseMessaging;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "FCM";
+    private static final String TAG = "MAINPAGE";
     private static final int RC_SIGN_IN = 1;
     private String token;
     private TextView info;
@@ -60,7 +54,14 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvSpO2;
     public FirebaseAuth mAuth;
     private FirebaseFirestore firestore;
+    private FirebaseUser currentUser;
     private ListenerRegistration registration;
+    private DocumentSnapshot DocumentData;
+    private ArrayList<DocumentSnapshot> DeviceData = new ArrayList<DocumentSnapshot>();
+
+    String LAST_READ = "last_read";
+    String PREVIOUS_READINGS = "previous readings";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,21 +82,15 @@ public class MainActivity extends AppCompatActivity {
         tvHeartRate = findViewById(R.id.tv_hr_val);
         tvSpO2 = findViewById(R.id.tv_spo_val);
 
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-
         // Check if user is signed in (non-null) and update UI accordingly.
-        FirebaseUser currentUser = mAuth.getCurrentUser();
+        currentUser = mAuth.getCurrentUser();
         if(currentUser == null){
             //TODO: Proceed to SignIn Menu
 //            startActivity(new Intent(getApplicationContext(),LoginActivity.class));
             // Choose authentication providers
             List<AuthUI.IdpConfig> providers = Arrays.asList(
                     new AuthUI.IdpConfig.EmailBuilder().enableEmailLinkSignIn()
-                    .setActionCodeSettings(buildActionCodeSettings()).build(),
+                            .setActionCodeSettings(buildActionCodeSettings()).build(),
                     new AuthUI.IdpConfig.GoogleBuilder().build());
 
 
@@ -108,10 +103,26 @@ public class MainActivity extends AppCompatActivity {
 
         }
         else {
-            Log.d(TAG,currentUser.getEmail());
-            info.setText("Hello " + currentUser.getDisplayName());
-            getDevices();
+            update_data();
+        }
 
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if(currentUser != null) {
+            info.setText("Hello " + currentUser.getDisplayName());
+
+            Log.d(TAG,"Got the current user : "+ currentUser.getDisplayName());
+//            get_device_data("Device1");
+        } else {
+            info.setText("PLease wait... " );  //           Add animation
+            currentUser = mAuth.getCurrentUser();
+            if(currentUser != null){
+                info.setText("Successfully Logged in");
+                info.setText("Hello " + currentUser.getDisplayName());
+            }
         }
     }
 
@@ -206,27 +217,11 @@ public class MainActivity extends AppCompatActivity {
 
     }
     private void getDevices(){
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        firestore.collection("users").document(currentUser.getUid())
-                .get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-            @Override
-            public void onSuccess(DocumentSnapshot document) {
-                if (document.exists()) {
+        ArrayList<Map<String,String>> device_list = (ArrayList<Map<String, String>>) DocumentData.get("device_list");
 
-                    ArrayList<Map<String,String>> device_list = (ArrayList<Map<String, String>>) document.get("device_list");
-                    if(device_list == null) {
-                        info2.setText("No devices to show.\nAdd a device!");
-                    }
-                    else{
-                        info2.setVisibility(View.GONE);
-                        for(Map<String,String> value : device_list){
-                            Log.d(TAG,"map : "+value.get("name"));
-                        }
-//                        initShowLatestReading(docRef,document.get("active_device").toString());
-                    }
-                }
-            }
-        });
+        for(Map<String,String> value : device_list){
+            Log.d(TAG,"Device Name :"+ value.get("name"));
+        }
     }
 
     private void initShowLatestReading(DocumentReference docRef, String activeDeviceID){
@@ -293,4 +288,49 @@ public class MainActivity extends AppCompatActivity {
         // [END fs_emulator_connect]
     }
 
+//   void get_device_data(){
+//        ArrayList<Map<String,String>> device_name = DocumentData.get("device_list/");
+//        Log.d(TAG,"Device data is :"+ device_data[0]);
+//   }
+
+
+    private void update_data(){
+        ArrayList<DocumentSnapshot> device_data;
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        firestore.collection("users").document(currentUser.getUid())
+                .get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                        if (task.isSuccessful()) {
+                             DocumentData = task.getResult();
+                            if (DocumentData.exists()) {
+                                Log.d(TAG, "DocumentSnapshot data: " + DocumentData.getData());
+                            } else {
+                                Log.d(TAG, "No such document");
+                            }
+                        } else {
+                            Log.d(TAG, "get failed with ", task.getException());
+                        }
+                        DocumentReference user_document_ref = firestore.collection("users")
+                                .document(currentUser.getUid());
+                        ArrayList<Map<String,String>> device_list = (ArrayList<Map<String, String>>) DocumentData.get("device_list");
+
+                        for(Map<String,String> device : device_list){
+                            user_document_ref.collection("devices/" + device.get("uuid") + "/Readings")
+                                    .document("reading")
+                                    .get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                @Override
+                                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                    if(task.isSuccessful()) {
+                                        DeviceData.add(task.getResult());
+                                    }
+                                    getDevices();
+                                }
+
+                            });
+                        }
+
+                    }
+                });
+    }
 }
