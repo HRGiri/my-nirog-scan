@@ -19,17 +19,6 @@
         android:theme="@style/Theme.MyNirogScan2"
         android:usesCleartextTraffic="true">
         <activity android:name=".AddDeviceActivity"></activity>
-        <activity android:name=".EmailRedirect">
-
-            <!-- <intent-filter> -->
-            <!-- <action android:name="android.intent.action.VIEW"/> -->
-            <!-- <category android:name="android.intent.category.DEFAULT" /> -->
-            <!-- <category android:name="android.intent.category.BROWSABLE" /> -->
-            <!-- <data -->
-            <!-- android:host="nirogindia.page.link" -->
-            <!-- android:scheme="https" /> -->
-            <!-- </intent-filter> -->
-        </activity>
         <activity
             android:name=".SignUpActivity"
             android:noHistory="true" >

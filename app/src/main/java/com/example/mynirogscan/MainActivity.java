@@ -35,7 +35,6 @@ import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,10 +56,17 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseUser currentUser;
     private ListenerRegistration registration;
     private DocumentSnapshot DocumentData;
-    private ArrayList<DocumentSnapshot> DeviceData = new ArrayList<DocumentSnapshot>();
+    private Map<String,List<DocumentSnapshot>> DeviceReadings = new HashMap<>();
+    private List<DocumentSnapshot> DeviceData;
+
+    private boolean DeviceDataInitialized = false;
+    ArrayList<Map<String,String>> device_list;
+
 
     String LAST_READ = "last_read";
     String PREVIOUS_READINGS = "previous readings";
+    int no_of_devices = 0;
+    int current_device_index = 0;
 
 
     @Override
@@ -216,13 +222,6 @@ public class MainActivity extends AppCompatActivity {
                 });
 
     }
-    private void getDevices(){
-        ArrayList<Map<String,String>> device_list = (ArrayList<Map<String, String>>) DocumentData.get("device_list");
-
-        for(Map<String,String> value : device_list){
-            Log.d(TAG,"Device Name :"+ value.get("name"));
-        }
-    }
 
     private void initShowLatestReading(DocumentReference docRef, String activeDeviceID){
         cardLastReading.setVisibility(View.VISIBLE);
@@ -288,47 +287,56 @@ public class MainActivity extends AppCompatActivity {
         // [END fs_emulator_connect]
     }
 
-//   void get_device_data(){
-//        ArrayList<Map<String,String>> device_name = DocumentData.get("device_list/");
-//        Log.d(TAG,"Device data is :"+ device_data[0]);
-//   }
-
 
     private void update_data(){
         ArrayList<DocumentSnapshot> device_data;
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         firestore.collection("users").document(currentUser.getUid())
-                .get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                .addSnapshotListener(new EventListener<DocumentSnapshot>() {
                     @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if (task.isSuccessful()) {
-                             DocumentData = task.getResult();
-                            if (DocumentData.exists()) {
-                                Log.d(TAG, "DocumentSnapshot data: " + DocumentData.getData());
-                            } else {
-                                Log.d(TAG, "No such document");
-                            }
+                    public void onEvent(@Nullable DocumentSnapshot snapshot,
+                                        @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+                            Log.w(TAG, "Listen failed.", e);
+                            return;
+                        }
+                        if (snapshot != null && snapshot.exists()) {
+                            DocumentData = snapshot;
                         } else {
-                            Log.d(TAG, "get failed with ", task.getException());
+                            Log.d(TAG, "No Data");
                         }
                         DocumentReference user_document_ref = firestore.collection("users")
-                                .document(currentUser.getUid());
-                        ArrayList<Map<String,String>> device_list = (ArrayList<Map<String, String>>) DocumentData.get("device_list");
+                                        .document(currentUser.getUid());
+                        user_document_ref.collection("devices")
+                                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                                                         @Override
+                                                         public void onEvent(@Nullable QuerySnapshot snapshots,
+                                                                             @Nullable FirebaseFirestoreException e) {
+                                                             if (e != null) {
+                                                                 Log.w(TAG, "listen:error", e);
+                                                                 return;
+                                                             }
+                                                             DeviceData = snapshots.getDocuments();
+                                                         }
+                                                     });
 
-                        for(Map<String,String> device : device_list){
+                        device_list = (ArrayList<Map<String, String>>) DocumentData.get("device_list");
+                        for(Map<String,String> device : device_list) {
                             user_document_ref.collection("devices/" + device.get("uuid") + "/Readings")
-                                    .document("reading")
-                                    .get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                                @Override
-                                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                                    if(task.isSuccessful()) {
-                                        DeviceData.add(task.getResult());
-                                    }
-                                    getDevices();
-                                }
-
-                            });
+                                    .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                                                         @Override
+                                                         public void onEvent(@Nullable QuerySnapshot snapshots,
+                                                                             @Nullable FirebaseFirestoreException e) {
+                                                             if (e != null) {
+                                                                 Log.w(TAG, "listen:error", e);
+                                                                 return;
+                                                             }
+                                                             Log.d(TAG,"ID is  : "+ snapshots.getDocuments().get(0).get("uuid").toString());
+                                                             DeviceReadings.put(snapshots.getDocuments().get(0).get("uuid").toString(), snapshots.getDocuments());
+                                                         }
+                                    });
                         }
+
 
                     }
                 });
