@@ -16,6 +16,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -37,16 +38,30 @@ import android.os.Looper;
 import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+
+import static com.example.mynirogscan.MainActivity.FIREBASE_TAG;
 
 public class AddDeviceActivity extends AppCompatActivity {
 
@@ -54,6 +69,7 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     public static final String SERVICE_UUID = "000000bb-0000-1000-8000-00805f9b34fb";
     public static final String WRITE_CHARACTERISTIC_UUID = "0000bb01-0000-1000-8000-00805f9b34fb";
+    public static final String NOTIFY_CHARACTERISTIC_UUID = "0000bb02-0000-1000-8000-00805f9b34fb";
 
     private static final int PERMISSIONS_ACCESS_FINE_LOCATION = 3;
     private static final int ENABLE_BLUETOOTH_REQUEST_CODE = 4;
@@ -77,19 +93,25 @@ public class AddDeviceActivity extends AppCompatActivity {
     private String userID;
     private String deviceID;
     private String FCMtoken;
-    private String displayName;
+    public String displayName;
     public String wifiSsid;
     public String wifiPassword;
 
     private FragmentManager fragmentManager;
 
     private TextView tvInfo;
+    private Button refreshButton;
+    private Button retryButton;
+    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_device);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        Intent intent = getIntent();
+        FCMtoken = intent.getStringExtra(MainActivity.ADD_DEVICE_EXTRA);
 //        if (savedInstanceState == null) {
 //            fragmentManager = getSupportFragmentManager();
 //            fragmentManager.beginTransaction()
@@ -97,8 +119,13 @@ public class AddDeviceActivity extends AppCompatActivity {
 //                    .add(R.id.fragmentContainerView, WiFiSelectFragment.class, null)
 //                    .commit();
 //        }
+
         wifiList = findViewById(R.id.wifi_list);
         tvInfo = findViewById(R.id.tv_add_device_info);
+        refreshButton = findViewById(R.id.button_refresh);
+        retryButton = findViewById(R.id.button_retry);
+        progressBar = findViewById(R.id.add_device_progress_bar);
+
 //        tvInfo.setText("Connecting with Nirog Scan. Please wait...");
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
@@ -112,6 +139,10 @@ public class AddDeviceActivity extends AppCompatActivity {
                         WifiManager.EXTRA_RESULTS_UPDATED, false);
                 String action = intent.getAction();
                 if (WifiManager.SCAN_RESULTS_AVAILABLE_ACTION.equals(action)) {
+                    wifiList.setVisibility(View.VISIBLE);
+                    refreshButton.setVisibility(View.VISIBLE);
+                    progressBar.setVisibility(View.INVISIBLE);;
+
                     tvInfo.setText("Please select a WiFi Access Point to configure NirogScan");
                     List<android.net.wifi.ScanResult> wifiDeviceList = wifiManager.getScanResults();
                     ArrayList<String> deviceList = new ArrayList<>();
@@ -126,6 +157,8 @@ public class AddDeviceActivity extends AppCompatActivity {
                         @Override
                         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                             tvInfo.setText("Please enter the password for " + deviceListCopy.get(position) + " to continue");
+                            wifiList.setVisibility(View.INVISIBLE);
+
                             fragmentManager = getSupportFragmentManager();
                             Bundle bundle = new Bundle();
                             bundle.putString("ssid",deviceListCopy.get(position));
@@ -140,6 +173,25 @@ public class AddDeviceActivity extends AppCompatActivity {
                 }
             }
         };
+
+        refreshButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                initWifiScan();
+            }
+        });
+
+        retryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                retryButton.setVisibility(View.INVISIBLE);
+                progressBar.setVisibility(View.VISIBLE);
+                BluetoothGattService service = btGatt.getService(UUID.fromString(SERVICE_UUID));
+                service.getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID)).setValue("RETRY");
+                btGatt.writeCharacteristic(service.getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID)));
+
+            }
+        });
 
     }
 
@@ -264,6 +316,15 @@ public class AddDeviceActivity extends AppCompatActivity {
             } else {
                 isDeviceFound = false;
                 isBleScanning = false;
+
+                progressBar.setVisibility(View.VISIBLE);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        tvInfo.setText("Searching for a Nirog Scan...");
+                    }
+                });
+
                 Log.d(BLE_TAG, bluetoothAdapter.getBondedDevices().toString());
                 ScanFilter nameFilter = new ScanFilter.Builder()
 //                        .setServiceUuid(ParcelUuid.fromString(SERVICE_UUID))
@@ -337,13 +398,29 @@ public class AddDeviceActivity extends AppCompatActivity {
     }
 
     private void initWifiScan(){
+        //TODO: Enable Location if not enabled
 //        checkPermissions();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         registerReceiver(wifiScanReceiver, intentFilter);
 
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                progressBar.setVisibility(View.VISIBLE);
+                refreshButton.setVisibility(View.INVISIBLE);
+                tvInfo.setText("Searching for available WiFi networks");
+            }
+        });
+
+
         if (!wifiManager.isWifiEnabled()) {
-            Toast.makeText(getApplicationContext(), "Turning WiFi ON...", Toast.LENGTH_LONG).show();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "Turning WiFi ON...", Toast.LENGTH_LONG).show();
+                }
+            });
             wifiManager.setWifiEnabled(true);
         }
         getWifi();
@@ -368,6 +445,7 @@ public class AddDeviceActivity extends AppCompatActivity {
     }
 
 
+
     private BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -387,11 +465,13 @@ public class AddDeviceActivity extends AppCompatActivity {
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                     Log.w(BLE_TAG, "Successfully disconnected from " + deviceAddress);
                     gatt.close();
+                    finish();
                 }
             } else {
                 Log.w(BLE_TAG, "Error " + status + " encountered for " + deviceAddress + "! Disconnecting...");
                 isDeviceFound = false;
                 gatt.close();
+                startBleScan();
             }
         }
 
@@ -415,24 +495,86 @@ public class AddDeviceActivity extends AppCompatActivity {
             super.onCharacteristicWrite(gatt, characteristic, status);
             if(status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(BLE_TAG, "Characteristic: " + characteristic.toString() + " write success! :)");
-                gatt.disconnect();
+                Log.i(BLE_TAG, "Data = " + characteristic.getStringValue(0));
             }
             else {
                 Log.i(BLE_TAG, "Characteristic: " + characteristic.toString() + " write failed :( with status: " + status);
             }
         }
 
+
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
+            String response = characteristic.getStringValue(0).trim();
+            Log.i(BLE_TAG, "Notify characteristic " + characteristic.getUuid() + ":\t" + response);
+            switch (response){
+                case "CONNECTED":
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            wifiList.setVisibility(View.INVISIBLE);
+                            refreshButton.setVisibility(View.INVISIBLE);
+                            progressBar.setVisibility(View.VISIBLE);
+                            Toast.makeText(AddDeviceActivity.this,"WiFi connected!",Toast.LENGTH_SHORT).show();
+                            tvInfo.setText("We are almost done!\nJust finishing up!");
+                        }
+                    });
+                    break;
+                case "AUTH_FAIL":
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(AddDeviceActivity.this,"Not connected! Please enter a correct password for WiFi",Toast.LENGTH_SHORT).show();
+                        }
+                    });
+//                gatt.disconnect();
+                    initWifiScan();
+                    break;
+                case "COMPLETED":
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressBar.setVisibility(View.INVISIBLE);
+                        }
+                    });
+                    uploadDeviceDetails();
+                    break;
+                case "UPLOAD_FAIL":
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            retryButton.setVisibility(View.VISIBLE);
+                            progressBar.setVisibility(View.INVISIBLE);
+                            Toast.makeText(AddDeviceActivity.this,"Could not establish connection to Database. Please try again!",Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    break;
+            }
         }
 
         @Override
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             super.onMtuChanged(gatt, mtu, status);
             Log.w(BLE_TAG, "Successfully changed mtu to " + mtu);
-            initWifiScan();
 
+            BluetoothGattService service = btGatt.getService(UUID.fromString(SERVICE_UUID));
+            btGatt.setCharacteristicNotification(service.getCharacteristic(UUID.fromString(NOTIFY_CHARACTERISTIC_UUID)),true);
+//            initWifiScan();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    tvInfo.setText("Please enter a nickname/display name for your NirogScan");
+                    progressBar.setVisibility(View.INVISIBLE);
+                }
+            });
+
+            fragmentManager = getSupportFragmentManager();
+            fragmentManager.beginTransaction()
+                    .setReorderingAllowed(true)
+                    .add(R.id.fragmentContainerView, DisplayNameFragment.class,null)
+                    .commit();
+            fragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks,false);
         }
     };
 
@@ -440,19 +582,65 @@ public class AddDeviceActivity extends AppCompatActivity {
         @Override
         public void onFragmentDestroyed(@NonNull FragmentManager fm, @NonNull Fragment f) {
             super.onFragmentDestroyed(fm, f);
-            Log.d(BLE_TAG,"SSID: " + wifiSsid + " Password: " + wifiPassword);
             fragmentManager.unregisterFragmentLifecycleCallbacks(fragmentLifecycleCallbacks);
-            unregisterReceiver(wifiScanReceiver);
-            userID = deviceID = FCMtoken = displayName = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-            String message = userID + "," + deviceID + "," + FCMtoken + "," + displayName + "," + wifiSsid + "," + wifiPassword;
+            if(f instanceof WiFiSelectFragment ) {
+                Log.d(BLE_TAG, "SSID: " + wifiSsid + " Password: " + wifiPassword);
+                unregisterReceiver(wifiScanReceiver);
+//            userID = deviceID = FCMtoken = displayName = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+                userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                deviceID = userID + "-01";
+//                displayName = "xxxxxxxxxxxxxxx";
+                String message = userID + "," + deviceID + "," + FCMtoken + "," + displayName + "," + wifiSsid + "," + wifiPassword;
 //            byte[] payload = message.getBytes(StandardCharsets.UTF_8);
-            btGatt.getService(UUID.fromString(SERVICE_UUID))
-                    .getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID))
-                    .setValue(message);
-            btGatt.writeCharacteristic(btGatt
-                    .getService(UUID.fromString(SERVICE_UUID))
-                    .getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID)));
+                BluetoothGattService service = btGatt.getService(UUID.fromString(SERVICE_UUID));
+
+                service.getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID))
+                        .setValue(message);
+                btGatt.writeCharacteristic(service.getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID)));
+            }
+            else if(f instanceof DisplayNameFragment){
+                Log.d(BLE_TAG,displayName);
+                initWifiScan();
+            }
         }
     };
+
+    private void uploadDeviceDetails() {
+        // Create a new user with a first and last name
+        Map<String, Object> user = new HashMap<>();
+        Map<String, String> device = new HashMap<>();
+        device.put("name",displayName);
+        device.put("uuid",deviceID);
+
+        // Add a new document with a generated ID
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        firestore.collection("users").document(userID)
+                .update("device_list", FieldValue.arrayUnion(device))
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void mVoid) {
+                        Log.d(FIREBASE_TAG, "DocumentSnapshot updated successfully");
+                        btGatt.disconnect();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                tvInfo.setText("Configuration complete!");
+                            }
+                        });
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@androidx.annotation.NonNull Exception e) {
+                        Log.w(FIREBASE_TAG, "Error adding document", e);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                tvInfo.setText("Failed to upload to database. Please try again!");
+                            }
+                        });
+                    }
+                });
+    }
 
 }
