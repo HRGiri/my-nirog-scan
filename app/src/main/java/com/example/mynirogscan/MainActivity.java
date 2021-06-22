@@ -42,7 +42,9 @@ import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static final String ADD_DEVICE_EXTRA = "com.example.mynirogscan.FCM_TOKEN";
     private static final String TAG = "MAINPAGE";
+    public static final String FIREBASE_TAG = "Firebase";
     private static final int RC_SIGN_IN = 1;
     private String token;
     private TextView info;
@@ -104,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
         }
         else {
             update_data();
+
         }
 
     }
@@ -324,7 +327,7 @@ public class MainActivity extends AppCompatActivity {
                                     if(task.isSuccessful()) {
                                         DeviceData.add(task.getResult());
                                     }
-                                    getDevices();
+//                                    getDevices();
                                 }
 
                             });
@@ -332,5 +335,16 @@ public class MainActivity extends AppCompatActivity {
 
                     }
                 });
+    }
+
+    /**
+     * Method to add a new device
+     */
+    private void addDevice(){
+        String fcmToken = DocumentData.get("FCMToken").toString();
+        Log.d(TAG,fcmToken.length() + "");
+        Intent intent = new Intent(MainActivity.this,AddDeviceActivity.class);
+        intent.putExtra(ADD_DEVICE_EXTRA,fcmToken);
+        startActivity(intent);
     }
 }

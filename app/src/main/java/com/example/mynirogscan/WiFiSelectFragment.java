@@ -2,7 +2,6 @@ package com.example.mynirogscan;
 
 import android.os.Bundle;
 
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import android.util.Log;
@@ -68,8 +67,8 @@ public class WiFiSelectFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_wi_fi_select, container, false);
         TextView wifiSSID = view.findViewById(R.id.tv_wifi_ssid);
         wifiSSID.setText(ssid);
-        EditText passInput = view.findViewById(R.id.et_wifi_password);
-        Button sendConfigButton = view.findViewById(R.id.button_send);
+        EditText passInput = view.findViewById(R.id.et_password_input);
+        Button sendConfigButton = view.findViewById(R.id.button_wifi_password);
         sendConfigButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
