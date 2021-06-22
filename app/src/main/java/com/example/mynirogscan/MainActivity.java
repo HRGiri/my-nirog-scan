@@ -20,6 +20,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -56,17 +57,14 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseUser currentUser;
     private ListenerRegistration registration;
     private DocumentSnapshot DocumentData;
-    private Map<String,List<DocumentSnapshot>> DeviceReadings = new HashMap<>();
+//    private Map<String,List<DocumentSnapshot>> DeviceReadings = new HashMap<>();
     private List<DocumentSnapshot> DeviceData;
+    private List<DocumentSnapshot> DeviceReadings;
+    ListenerRegistration ReadingListeners;
+    ListenerRegistration DeviceDataListeners;
+    ListenerRegistration DocumentDataListeners;
 
     private boolean DeviceDataInitialized = false;
-    ArrayList<Map<String,String>> device_list;
-
-
-    String LAST_READ = "last_read";
-    String PREVIOUS_READINGS = "previous readings";
-    int no_of_devices = 0;
-    int current_device_index = 0;
 
 
     @Override
@@ -121,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
             info.setText("Hello " + currentUser.getDisplayName());
 
             Log.d(TAG,"Got the current user : "+ currentUser.getDisplayName());
-//            get_device_data("Device1");
         } else {
             info.setText("PLease wait... " );  //           Add animation
             currentUser = mAuth.getCurrentUser();
@@ -136,8 +133,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if(registration != null)
+        if(registration != null)                  //To be moved to onpause()
             registration.remove();
+//        if(DocumentDataListeners != null)       //Might not be required.
+//            DocumentDataListeners.remove();
+        if(DeviceDataListeners != null)
+            DeviceDataListeners.remove();
+        if(ReadingListeners != null)
+            ReadingListeners.remove();
     }
 
     @Override
@@ -291,7 +294,7 @@ public class MainActivity extends AppCompatActivity {
     private void update_data(){
         ArrayList<DocumentSnapshot> device_data;
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        firestore.collection("users").document(currentUser.getUid())
+        DocumentDataListeners = firestore.collection("users").document(currentUser.getUid())
                 .addSnapshotListener(new EventListener<DocumentSnapshot>() {
                     @Override
                     public void onEvent(@Nullable DocumentSnapshot snapshot,
@@ -305,39 +308,40 @@ public class MainActivity extends AppCompatActivity {
                         } else {
                             Log.d(TAG, "No Data");
                         }
-                        DocumentReference user_document_ref = firestore.collection("users")
-                                        .document(currentUser.getUid());
-                        user_document_ref.collection("devices")
-                                .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                                                         @Override
-                                                         public void onEvent(@Nullable QuerySnapshot snapshots,
-                                                                             @Nullable FirebaseFirestoreException e) {
-                                                             if (e != null) {
-                                                                 Log.w(TAG, "listen:error", e);
-                                                                 return;
-                                                             }
-                                                             DeviceData = snapshots.getDocuments();
-                                                         }
-                                                     });
+                        add_devices_listeners();
 
-                        device_list = (ArrayList<Map<String, String>>) DocumentData.get("device_list");
-                        for(Map<String,String> device : device_list) {
-                            user_document_ref.collection("devices/" + device.get("uuid") + "/Readings")
-                                    .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                                                         @Override
-                                                         public void onEvent(@Nullable QuerySnapshot snapshots,
-                                                                             @Nullable FirebaseFirestoreException e) {
-                                                             if (e != null) {
-                                                                 Log.w(TAG, "listen:error", e);
-                                                                 return;
-                                                             }
-                                                             Log.d(TAG,"ID is  : "+ snapshots.getDocuments().get(0).get("uuid").toString());
-                                                             DeviceReadings.put(snapshots.getDocuments().get(0).get("uuid").toString(), snapshots.getDocuments());
-                                                         }
-                                    });
+                    }
+                });   if(DocumentDataListeners != null)
+            DocumentDataListeners.remove();
+    }
+
+    private void add_devices_listeners(){
+        DocumentReference user_document_ref = firestore.collection("users")
+                .document(currentUser.getUid());
+        DeviceDataListeners = user_document_ref.collection("devices")
+                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot snapshots,
+                                        @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+                            Log.w(TAG, "listen:error", e);
+                            return;
                         }
+                        DeviceData = snapshots.getDocuments();
+                    }
+                });
 
-
+        ReadingListeners = user_document_ref.collection("Readings")
+                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot snapshots,
+                                        @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+                            Log.w(TAG, "listen:error", e);
+                            return;
+                        }
+                        DeviceReadings = snapshots.getDocuments();
+                        Log.d(TAG,"readings : "+ DeviceReadings.toString());
                     }
                 });
     }
