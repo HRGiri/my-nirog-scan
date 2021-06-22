@@ -20,6 +20,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -35,7 +36,6 @@ import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,10 +59,14 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseUser currentUser;
     private ListenerRegistration registration;
     private DocumentSnapshot DocumentData;
-    private ArrayList<DocumentSnapshot> DeviceData = new ArrayList<DocumentSnapshot>();
+//    private Map<String,List<DocumentSnapshot>> DeviceReadings = new HashMap<>();
+    private List<DocumentSnapshot> DeviceData;
+    private List<DocumentSnapshot> DeviceReadings;
+    ListenerRegistration ReadingListeners;
+    ListenerRegistration DeviceDataListeners;
+    ListenerRegistration DocumentDataListeners;
 
-    String LAST_READ = "last_read";
-    String PREVIOUS_READINGS = "previous readings";
+    private boolean DeviceDataInitialized = false;
 
 
     @Override
@@ -118,7 +122,6 @@ public class MainActivity extends AppCompatActivity {
             info.setText("Hello " + currentUser.getDisplayName());
 
             Log.d(TAG,"Got the current user : "+ currentUser.getDisplayName());
-//            get_device_data("Device1");
         } else {
             info.setText("PLease wait... " );  //           Add animation
             currentUser = mAuth.getCurrentUser();
@@ -133,8 +136,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if(registration != null)
+        if(registration != null)                  //To be moved to onpause()
             registration.remove();
+//        if(DocumentDataListeners != null)       //Might not be required.
+//            DocumentDataListeners.remove();
+        if(DeviceDataListeners != null)
+            DeviceDataListeners.remove();
+        if(ReadingListeners != null)
+            ReadingListeners.remove();
     }
 
     @Override
@@ -219,13 +228,6 @@ public class MainActivity extends AppCompatActivity {
                 });
 
     }
-    private void getDevices(){
-        ArrayList<Map<String,String>> device_list = (ArrayList<Map<String, String>>) DocumentData.get("device_list");
-
-        for(Map<String,String> value : device_list){
-            Log.d(TAG,"Device Name :"+ value.get("name"));
-        }
-    }
 
     private void initShowLatestReading(DocumentReference docRef, String activeDeviceID){
         cardLastReading.setVisibility(View.VISIBLE);
@@ -291,48 +293,58 @@ public class MainActivity extends AppCompatActivity {
         // [END fs_emulator_connect]
     }
 
-//   void get_device_data(){
-//        ArrayList<Map<String,String>> device_name = DocumentData.get("device_list/");
-//        Log.d(TAG,"Device data is :"+ device_data[0]);
-//   }
-
 
     private void update_data(){
         ArrayList<DocumentSnapshot> device_data;
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        firestore.collection("users").document(currentUser.getUid())
-                .get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        DocumentDataListeners = firestore.collection("users").document(currentUser.getUid())
+                .addSnapshotListener(new EventListener<DocumentSnapshot>() {
                     @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if (task.isSuccessful()) {
-                             DocumentData = task.getResult();
-                            if (DocumentData.exists()) {
-                                Log.d(TAG, "DocumentSnapshot data: " + DocumentData.getData());
-                            } else {
-                                Log.d(TAG, "No such document");
-                            }
+                    public void onEvent(@Nullable DocumentSnapshot snapshot,
+                                        @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+                            Log.w(TAG, "Listen failed.", e);
+                            return;
+                        }
+                        if (snapshot != null && snapshot.exists()) {
+                            DocumentData = snapshot;
                         } else {
-                            Log.d(TAG, "get failed with ", task.getException());
-                        }
-                        DocumentReference user_document_ref = firestore.collection("users")
-                                .document(currentUser.getUid());
-                        ArrayList<Map<String,String>> device_list = (ArrayList<Map<String, String>>) DocumentData.get("device_list");
-
-                        for(Map<String,String> device : device_list){
-                            user_document_ref.collection("devices/" + device.get("uuid") + "/Readings")
-                                    .document("reading")
-                                    .get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                                @Override
-                                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                                    if(task.isSuccessful()) {
-                                        DeviceData.add(task.getResult());
-                                    }
-//                                    getDevices();
-                                }
-
-                            });
+                            Log.d(TAG, "No Data");
                         }
 
+                        add_devices_listeners();
+
+                    }
+                });   
+    }
+
+    private void add_devices_listeners(){
+        DocumentReference user_document_ref = firestore.collection("users")
+                .document(currentUser.getUid());
+        DeviceDataListeners = user_document_ref.collection("devices")
+                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot snapshots,
+                                        @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+                            Log.w(TAG, "listen:error", e);
+                            return;
+                        }
+                        DeviceData = snapshots.getDocuments();
+                    }
+                });
+
+        ReadingListeners = user_document_ref.collection("Readings")
+                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot snapshots,
+                                        @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+                            Log.w(TAG, "listen:error", e);
+                            return;
+                        }
+                        DeviceReadings = snapshots.getDocuments();
+                        Log.d(TAG,"readings : "+ DeviceReadings.toString());
                     }
                 });
     }
