@@ -4,9 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".WiFiSelectFragment">
-
-    <!-- TODO: Update blank fragment layout -->
+    tools:context=".DisplayNameFragment">
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
@@ -22,36 +20,26 @@
             android:layout_margin="8dp"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_wifi_ssid"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginBottom="16dp"
-                android:textAlignment="center"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                tools:text="WiFi SSID" />
-
             <EditText
-                android:id="@+id/et_password_input"
+                android:id="@+id/et_device_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:ems="10"
-                android:hint="Password"
-                android:inputType="textPassword"
+                android:hint="Enter a name"
+                android:inputType="text"
                 android:textAlignment="center" />
 
             <Button
-                android:id="@+id/button_wifi_password"
+                android:id="@+id/button_display_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="16dp"
                 android:layout_marginRight="16dp"
-                android:text="Confirm" />
+                android:text="Next" />
 
         </LinearLayout>
 
     </androidx.cardview.widget.CardView>
-
 </FrameLayout>
+
