@@ -1,18 +1,25 @@
-package com.example.mynirogscan;
+    package com.example.mynirogscan;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.TextView;
 
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.AxisBase;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -20,7 +27,6 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -32,13 +38,18 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.Source;
 import com.google.firebase.messaging.FirebaseMessaging;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
+import java.util.TreeMap;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -48,25 +59,24 @@ public class MainActivity extends AppCompatActivity {
     private static final int RC_SIGN_IN = 1;
     private String token;
     private TextView info;
-    private TextView info2;
-    private CardView cardLastReading;
-    private TextView tvLastRead;
-    private TextView tvTemperature;
-    private TextView tvHeartRate;
-    private TextView tvSpO2;
+    private TextView total_visits_value;
+    private TextView oxygen_value;
+    private TextView heartrate_value;
+    private TextView temperature_value;
+    private LineChart reading_chart;
     public FirebaseAuth mAuth;
     private FirebaseFirestore firestore;
     private FirebaseUser currentUser;
     private ListenerRegistration registration;
     private DocumentSnapshot DocumentData;
-//    private Map<String,List<DocumentSnapshot>> DeviceReadings = new HashMap<>();
     private List<DocumentSnapshot> DeviceData;
     private List<DocumentSnapshot> DeviceReadings;
     ListenerRegistration ReadingListeners;
     ListenerRegistration DeviceDataListeners;
     ListenerRegistration DocumentDataListeners;
+    Map<Number,Map<String,Number>> all_readings_sorted;
+    Map<Long,String> timestamp_string;
 
-    private boolean DeviceDataInitialized = false;
 
 
     @Override
@@ -78,15 +88,16 @@ public class MainActivity extends AppCompatActivity {
 //        mAuth.useEmulator("10.0.2.2", 9099);
 
         firestore = FirebaseFirestore.getInstance();
+        firestore.enableNetwork();
 //        emulatorSettings();
 
         info = findViewById(R.id.tv_main);
-        info2 = findViewById(R.id.tv_info);
-        cardLastReading = findViewById(R.id.card_last_reading);
-        tvLastRead = findViewById(R.id.tv_last_read);
-        tvTemperature = findViewById(R.id.tv_temp_val);
-        tvHeartRate = findViewById(R.id.tv_hr_val);
-        tvSpO2 = findViewById(R.id.tv_spo_val);
+
+        total_visits_value = findViewById(R.id.total_visitors_card);
+        oxygen_value = findViewById(R.id.oxygen_card);
+        temperature_value = findViewById(R.id.temperature_card);
+        heartrate_value = findViewById(R.id.heartrate_card);
+        reading_chart = findViewById(R.id.Linechart);
 
         // Check if user is signed in (non-null) and update UI accordingly.
         currentUser = mAuth.getCurrentUser();
@@ -229,8 +240,29 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    private void extract_data_from_document(){
+
+        Map<Number,Map<String,Number>> all_readings = new HashMap<Number,Map<String,Number>>();
+        for(DocumentSnapshot curr_doc : DeviceReadings){
+            Map<String,Map<String,Number>> curr_device_readings = (Map<String,Map<String,Number>>)curr_doc.get("previous_readings");
+            for(String key: curr_device_readings.keySet())
+                {
+                    Long int_key = Long.parseLong(key);
+                    if(all_readings.containsKey(int_key)){
+                        int_key = int_key + 1;
+                    }
+                    all_readings.put(int_key,curr_device_readings.get(key));
+                }
+        }
+         all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings);
+
+        populate_reading_history_chart();
+    }
+
+
     private void initShowLatestReading(DocumentReference docRef, String activeDeviceID){
-        cardLastReading.setVisibility(View.VISIBLE);
+
 
         registration = docRef.collection("devices").document(activeDeviceID)
                 .collection("readings")
@@ -248,10 +280,7 @@ public class MainActivity extends AppCompatActivity {
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    tvLastRead.setText("Last read: " +  doc.get("time"));
-                                    tvTemperature.setText(doc.get("temperature") + " C");
-                                    tvHeartRate.setText(doc.get("heart_rate") + " bpm");
-                                    tvSpO2.setText(doc.get("spo") + "%");
+
                                 }
                             });
                         }
@@ -287,7 +316,7 @@ public class MainActivity extends AppCompatActivity {
         firestore.useEmulator("10.0.2.2", 8080);
 
         FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
-                .setPersistenceEnabled(false)
+//                .setPersistenceEnabled(false)
                 .build();
         firestore.setFirestoreSettings(settings);
         // [END fs_emulator_connect]
@@ -318,6 +347,51 @@ public class MainActivity extends AppCompatActivity {
                 });   
     }
 
+    private void populate_reading_history_chart(){
+
+        List<Entry> oxygen_entries = new ArrayList<Entry>();
+        List<Entry> temperature_entries = new ArrayList<Entry>();
+        List<Entry> heartrate_entries = new ArrayList<Entry>();
+        for (Number timestamp: all_readings_sorted.keySet()) {
+            Date date = new Date((long)timestamp);
+            SimpleDateFormat dateformat = new SimpleDateFormat("DD-MM HH:mm:ss");
+            dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
+            String xaxis_timestamp = dateformat.format(date);
+            timestamp_string.put((Long)timestamp,xaxis_timestamp);
+            oxygen_entries.add(new Entry((Long)timestamp, all_readings_sorted.get(timestamp).get("oxygen").floatValue()));
+            temperature_entries.add(new Entry((Long)timestamp, all_readings_sorted.get(timestamp).get("temperature").floatValue()));
+            heartrate_entries.add(new Entry((Long)timestamp, all_readings_sorted.get(timestamp).get("heartrate").floatValue()));
+        }
+        LineDataSet setOxygen = new LineDataSet(oxygen_entries,"Oxygen");
+        setOxygen.setAxisDependency(YAxis.AxisDependency.LEFT);
+        LineDataSet setTemperature = new LineDataSet(temperature_entries,"Temperature");
+        setTemperature.setAxisDependency(YAxis.AxisDependency.LEFT);
+        LineDataSet setHeartrate = new LineDataSet(heartrate_entries,"Heartrate");
+        setHeartrate.setAxisDependency(YAxis.AxisDependency.LEFT);
+
+        List<ILineDataSet> dataSets = new ArrayList<ILineDataSet>();
+        dataSets.add(setOxygen);
+        dataSets.add(setTemperature);
+        dataSets.add(setHeartrate);
+        LineData data = new LineData(dataSets);
+        reading_chart.setData(data);
+
+        //Format X axis
+        ValueFormatter formatter = new ValueFormatter() {
+            @Override
+            public String getAxisLabel(float value, AxisBase axis) {
+                return timestamp_string.get();
+            }
+        };
+        XAxis xAxis = reading_chart.getXAxis();
+        xAxis.setGranularity(1f); // minimum axis-step (interval) is 1
+        xAxis.setValueFormatter(formatter);
+
+
+
+        reading_chart.invalidate(); // refresh
+    }
+
     private void add_devices_listeners(){
         DocumentReference user_document_ref = firestore.collection("users")
                 .document(currentUser.getUid());
@@ -343,8 +417,13 @@ public class MainActivity extends AppCompatActivity {
                             Log.w(TAG, "listen:error", e);
                             return;
                         }
-                        DeviceReadings = snapshots.getDocuments();
-                        Log.d(TAG,"readings : "+ DeviceReadings.toString());
+                        if(snapshots!=null) {
+                            DeviceReadings = snapshots.getDocuments();
+                            extract_data_from_document();
+                        }
+                        else {
+                        Log.d(TAG,"documents not found");
+                        }
                     }
                 });
     }
