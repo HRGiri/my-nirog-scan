@@ -157,19 +157,19 @@
 
             <com.github.mikephil.charting.charts.PieChart
                 android:id="@+id/company_health_chart"
-                android:layout_width="0dp"
+                android:layout_width="411dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1" />
 
             <com.github.mikephil.charting.charts.PieChart
                 android:id="@+id/temperature_chart"
-                android:layout_width="0dp"
+                android:layout_width="411dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1" />
 
             <com.github.mikephil.charting.charts.PieChart
                 android:id="@+id/oxygen_chart"
-                android:layout_width="0dp"
+                android:layout_width="411dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1">
 
@@ -177,7 +177,7 @@
 
             <com.github.mikephil.charting.charts.PieChart
                 android:id="@+id/heartrate_chart"
-                android:layout_width="0dp"
+                android:layout_width="411dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1" />
 
