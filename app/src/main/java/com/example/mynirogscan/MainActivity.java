@@ -3,6 +3,10 @@ package com.example.mynirogscan;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.core.util.Pair;
 
 import android.content.Intent;
@@ -129,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+//        setContentView(R.layout.home_screen);
 
         // From another Fragment or Activity where you wish to show this
 // PurchaseConfirmationDialogFragment.
