@@ -28,7 +28,6 @@ import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.PercentFormatter;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
-import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import com.github.mikephil.charting.utils.MPPointF;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -49,10 +48,8 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
-import com.google.firebase.firestore.Source;
 import com.google.firebase.messaging.FirebaseMessaging;
 
-import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,7 +72,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView oxygen_value;
     private TextView heartrate_value;
     private TextView temperature_value;
-    private LineChart reading_chart;
+    private LineChart complete_reading_chart;
+    private LineChart oxygen_reading_chart;
+    private LineChart temperature_reading_chart;
+    private LineChart heartrate_reading_chart;
     private PieChart company_health_chart;
     private PieChart oxygen_pie_chart;
     private PieChart temperature_pie_chart;
@@ -93,9 +93,16 @@ public class MainActivity extends AppCompatActivity {
     Map<Number,Map<String,Number>> all_readings_sorted;
     Float counter;   //Revisit after testing
     XAxis xAxis;
+    XAxis oxygen_xAxis;
+    XAxis temperature_xAxis;
+    XAxis heartrate_xAxis;
+    int total_reads;
 
-
-
+    final float MIN_OXY_LIM = 93f;
+    final float MIN_HEARTRATE = 40f;
+    final float MAX_HEARTRATE = 100f;
+    final float MAX_TEMPERATURE = 99f;
+    final float MIN_TEMPERATURE = 97f;
 
 
     @Override
@@ -118,17 +125,21 @@ public class MainActivity extends AppCompatActivity {
         heartrate_value = findViewById(R.id.heartrate_card);
 
         /*Reading Chart settings*/
-        reading_chart = findViewById(R.id.Linechart);
+        complete_reading_chart = findViewById(R.id.complete_reading_history_chart);
+        oxygen_reading_chart = findViewById(R.id.oxygen_reading_history_chart);
+        temperature_reading_chart = findViewById(R.id.temperature_reading_history_chart);
+        heartrate_reading_chart = findViewById(R.id.heartrate_reading_history_chart);
 
+        //Complete Reading History chart settings
         // enable scaling and dragging
-        reading_chart.setDragEnabled(true);
-        reading_chart.setScaleEnabled(true);
-        reading_chart.setDrawGridBackground(false);
-        reading_chart.setHighlightPerDragEnabled(true);
-        reading_chart.setPinchZoom(true);
-        reading_chart.setBackgroundColor(Color.TRANSPARENT);
-        xAxis = reading_chart.getXAxis();
-        reading_chart.animateX(1500);
+        complete_reading_chart.setDragEnabled(true);
+        complete_reading_chart.setScaleEnabled(true);
+        complete_reading_chart.setDrawGridBackground(false);
+        complete_reading_chart.setHighlightPerDragEnabled(true);
+        complete_reading_chart.setPinchZoom(true);
+        complete_reading_chart.setBackgroundColor(Color.TRANSPARENT);
+        xAxis = complete_reading_chart.getXAxis();
+        complete_reading_chart.animateX(1500);
 
 
         xAxis.setTextSize(11f);
@@ -136,20 +147,93 @@ public class MainActivity extends AppCompatActivity {
         xAxis.setDrawGridLines(false);
         xAxis.setDrawAxisLine(false);
 
-        YAxis leftAxis = reading_chart.getAxisLeft();
+        YAxis leftAxis = complete_reading_chart.getAxisLeft();
         leftAxis.setTextColor(ColorTemplate.getHoloBlue());
         leftAxis.setAxisMaximum(120f);
         leftAxis.setAxisMinimum(90f);
         leftAxis.setDrawGridLines(true);
         leftAxis.setGranularityEnabled(true);
 
-        YAxis rightAxis = reading_chart.getAxisRight();
+        YAxis rightAxis = complete_reading_chart.getAxisRight();
         rightAxis.setTextColor(Color.RED);
         rightAxis.setAxisMaximum(200f);
         rightAxis.setAxisMinimum(20f);
         rightAxis.setDrawGridLines(false);
         rightAxis.setDrawZeroLine(false);
         rightAxis.setGranularityEnabled(true);
+
+        //Oxygen Reading History chart settings
+        // enable scaling and dragging
+        oxygen_reading_chart.setDragEnabled(true);
+        oxygen_reading_chart.setScaleEnabled(true);
+        oxygen_reading_chart.setDrawGridBackground(false);
+        oxygen_reading_chart.setHighlightPerDragEnabled(true);
+        oxygen_reading_chart.setPinchZoom(true);
+        oxygen_reading_chart.setBackgroundColor(Color.TRANSPARENT);
+        oxygen_xAxis = oxygen_reading_chart.getXAxis();
+        oxygen_reading_chart.animateX(1500);
+
+
+        oxygen_xAxis.setTextSize(11f);
+        oxygen_xAxis.setTextColor(Color.MAGENTA);
+        oxygen_xAxis.setDrawGridLines(false);
+        oxygen_xAxis.setDrawAxisLine(false);
+
+        YAxis OxyleftAxis = oxygen_reading_chart.getAxisLeft();
+        OxyleftAxis.setTextColor(ColorTemplate.getHoloBlue());
+        OxyleftAxis.setAxisMaximum(100f);
+        OxyleftAxis.setAxisMinimum(75f);
+        OxyleftAxis.setDrawGridLines(true);
+        OxyleftAxis.setGranularityEnabled(true);
+
+
+        //Temperature Reading History chart settings
+        // enable scaling and dragging
+        temperature_reading_chart.setDragEnabled(true);
+        temperature_reading_chart.setScaleEnabled(true);
+        temperature_reading_chart.setDrawGridBackground(false);
+        temperature_reading_chart.setHighlightPerDragEnabled(true);
+        temperature_reading_chart.setPinchZoom(true);
+        temperature_reading_chart.setBackgroundColor(Color.TRANSPARENT);
+        temperature_xAxis = temperature_reading_chart.getXAxis();
+        temperature_reading_chart.animateX(1500);
+
+
+        temperature_xAxis.setTextSize(11f);
+        temperature_xAxis.setTextColor(Color.MAGENTA);
+        temperature_xAxis.setDrawGridLines(false);
+        temperature_xAxis.setDrawAxisLine(false);
+
+        YAxis templeftAxis = temperature_reading_chart.getAxisLeft();
+        templeftAxis.setTextColor(ColorTemplate.getHoloBlue());
+        templeftAxis.setAxisMaximum(120f);
+        templeftAxis.setAxisMinimum(90f);
+        templeftAxis.setDrawGridLines(true);
+        templeftAxis.setGranularityEnabled(true);
+
+        //Heartrate Reading History chart settings
+        // enable scaling and dragging
+        heartrate_reading_chart.setDragEnabled(true);
+        heartrate_reading_chart.setScaleEnabled(true);
+        heartrate_reading_chart.setDrawGridBackground(false);
+        heartrate_reading_chart.setHighlightPerDragEnabled(true);
+        heartrate_reading_chart.setPinchZoom(true);
+        heartrate_reading_chart.setBackgroundColor(Color.TRANSPARENT);
+        heartrate_xAxis = heartrate_reading_chart.getXAxis();
+        heartrate_reading_chart.animateX(1500);
+
+
+        heartrate_xAxis.setTextSize(11f);
+        heartrate_xAxis.setTextColor(Color.MAGENTA);
+        heartrate_xAxis.setDrawGridLines(false);
+        heartrate_xAxis.setDrawAxisLine(false);
+
+        YAxis hrleftAxis = heartrate_reading_chart.getAxisLeft();
+        hrleftAxis.setTextColor(ColorTemplate.getHoloBlue());
+        hrleftAxis.setAxisMaximum(200f);
+        hrleftAxis.setAxisMinimum(20f);
+        hrleftAxis.setDrawGridLines(true);
+        hrleftAxis.setGranularityEnabled(true);
 
 
         //############## Pie Chart settings
@@ -285,7 +369,7 @@ public class MainActivity extends AppCompatActivity {
         heartrate_legend.setYOffset(0f);
 
         // entry label styling
-        heartrate_pie_chart.setEntryLabelColor(Color.WHITE);
+        heartrate_pie_chart.setEntryLabelColor(Color.BLACK);
         heartrate_pie_chart.setEntryLabelTextSize(12f);
 
 
@@ -447,6 +531,7 @@ public class MainActivity extends AppCompatActivity {
         }
          all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings);
 
+        update_top_table();
         populate_reading_history_chart();
         populate_company_health_chart();
     }
@@ -538,29 +623,99 @@ public class MainActivity extends AppCompatActivity {
                 });   
     }
 
+
+    private void update_top_table(){
+        /* Update Total Read, Last readings */
+        //Assumption : all_reading_sorted contains only the latest readings
+        total_reads = all_readings_sorted.size();
+        Number last_read_timestamp = (Number)all_readings_sorted.keySet().toArray()[total_reads-1];
+        total_visits_value.setText(String.format("%d",total_reads));
+        oxygen_value.setText(String.format("%.1f %%",all_readings_sorted.get(last_read_timestamp).get("oxygen").floatValue()));
+        temperature_value.setText(String.format("%.1f \u00B0 F",all_readings_sorted.get(last_read_timestamp).get("temperature").floatValue()));
+        heartrate_value.setText(String.format("%d bpm",all_readings_sorted.get(last_read_timestamp).get("heartrate").intValue()));
+
+    }
+
     private void populate_company_health_chart(){
-        ArrayList<PieEntry> entries = new ArrayList<>();
 
+        int bad_oxy_count = 0;
+        int bad_temp_count = 0;
+        int bad_hr_count = 0;
 
-
-        int count = 5;
-        int range = 5;
-        String[] parties = new String[]{"one","two","three","four","five"};
-        //####Company health
-        for (int i = 0; i < count ; i++) {
-            entries.add(new PieEntry((float) ((Math.random() * range) + range / 5),
-                    parties[i % parties.length]));
+        int green_band = 0;
+        int yellow_band = 0;
+        int orange_band = 0;
+        int red_band =0;
+        for(Number ind_timestamp : all_readings_sorted.keySet() ){
+            int red_flags = 0;
+            float oxygen_val = all_readings_sorted.get(ind_timestamp).get("oxygen").floatValue();
+            float temp_val = all_readings_sorted.get(ind_timestamp).get("temperature").floatValue();
+            float hr_val = all_readings_sorted.get(ind_timestamp).get("heartrate").floatValue();
+            if(oxygen_val < MIN_OXY_LIM){
+                bad_oxy_count++;
+                red_flags++;
+            }
+            if(!(temp_val > MIN_TEMPERATURE && temp_val < MAX_TEMPERATURE)){
+                bad_temp_count++;
+                red_flags++;
+            }
+            if(!(hr_val > MIN_HEARTRATE && hr_val < MAX_TEMPERATURE)){
+                bad_hr_count++;
+                red_flags++;
+            }
+            switch (red_flags){
+                case 0 :
+                    green_band++;
+                    break;
+                case 1:
+                    yellow_band++;
+                    break;
+                case 2:
+                    orange_band++;
+                    break;
+                case 3:
+                    red_band++;
+                    break;
+            }
         }
 
-        PieDataSet dataSet = new PieDataSet(entries, "Election Results");
+        Log.d(TAG,"Bad Oxygen  "+bad_oxy_count);
+        Log.d(TAG,"Bad Heartrate "+bad_hr_count);
+        Log.d(TAG,"Bad temperature"+bad_temp_count);
+        Log.d(TAG,"Bands"+green_band);
+        Log.d(TAG,"Total Reads"+total_reads);
 
-        dataSet.setDrawIcons(false);
 
-        dataSet.setSliceSpace(3f);
-        dataSet.setIconsOffset(new MPPointF(0, 40));
-        dataSet.setSelectionShift(5f);
+        ArrayList<PieEntry> pie_comp_health_chart_entries = new ArrayList<>();
+        pie_comp_health_chart_entries.add(new PieEntry(((float)(green_band)/total_reads)*100f,"Healthy"));
+        pie_comp_health_chart_entries.add(new PieEntry(((float)(yellow_band)/total_reads)*100f,"Unfit"));
+        pie_comp_health_chart_entries.add(new PieEntry(((float)(orange_band)/total_reads)*100f,"Ill"));
+        pie_comp_health_chart_entries.add(new PieEntry(((float)(red_band)/total_reads)*100f,"Dead"));
 
-        // add a lot of colors
+        ArrayList<PieEntry> pie_oxy_chart_entries = new ArrayList<>();
+        pie_oxy_chart_entries.add(new PieEntry(((float)(total_reads - bad_oxy_count)/total_reads)*100f,"Healthy"));
+        pie_oxy_chart_entries.add(new PieEntry(((float)(bad_oxy_count)/total_reads)*100f," Unhealthy"));
+
+        ArrayList<PieEntry> pie_temp_chart_entries = new ArrayList<>();
+        pie_temp_chart_entries.add(new PieEntry(((float)(total_reads - bad_temp_count)/total_reads)*100f,"Healthy"));
+        pie_temp_chart_entries.add(new PieEntry(((float)(bad_temp_count)/total_reads)*100f," Unhealthy"));
+
+        ArrayList<PieEntry> pie_hr_chart_entries = new ArrayList<>();
+        pie_hr_chart_entries.add(new PieEntry(((float)(total_reads - bad_hr_count)/total_reads)*100f,"Healthy"));
+        pie_hr_chart_entries.add(new PieEntry(((float)(bad_hr_count)/total_reads)*100f," Unhealthy"));
+
+
+        PieDataSet oxy_dataSet = new PieDataSet(pie_oxy_chart_entries, "Oxygen Reading Report");
+        PieDataSet temp_dataSet = new PieDataSet(pie_temp_chart_entries, "Temperature Reading Report");
+        PieDataSet hr_dataSet = new PieDataSet(pie_hr_chart_entries, "Heart Rate Reading Report");
+        PieDataSet comp_health_dataSet = new PieDataSet(pie_comp_health_chart_entries, "Company Health Report");
+
+
+        Log.d(TAG,"Oxygen entries "+pie_oxy_chart_entries.toString());
+        Log.d(TAG,"heartrate entries "+pie_hr_chart_entries.toString());
+        Log.d(TAG,"temperature entries "+pie_temp_chart_entries.toString());
+        Log.d(TAG,"Comp entries"+pie_comp_health_chart_entries.toString());
+        // Common colors initialization
 
         ArrayList<Integer> colors = new ArrayList<>();
 
@@ -581,17 +736,62 @@ public class MainActivity extends AppCompatActivity {
 
         colors.add(ColorTemplate.getHoloBlue());
 
-        dataSet.setColors(colors);
-        //dataSet.setSelectionShift(0f);
+        // Oxygen chart Settings
+        oxy_dataSet.setDrawIcons(false);
+        oxy_dataSet.setSliceSpace(3f);
+        oxy_dataSet.setIconsOffset(new MPPointF(0, 40));
+        oxy_dataSet.setSelectionShift(5f);
 
-        PieData data = new PieData(dataSet);
-        data.setValueFormatter(new PercentFormatter());
-        data.setValueTextSize(11f);
-        data.setValueTextColor(Color.WHITE);
-        company_health_chart.setData(data);
-        oxygen_pie_chart.setData(data);
-        temperature_pie_chart.setData(data);
-        heartrate_pie_chart.setData(data);
+        oxy_dataSet.setColors(colors);
+
+        PieData oxy_data = new PieData(oxy_dataSet);
+        oxy_data.setValueFormatter(new PercentFormatter());
+        oxy_data.setValueTextSize(11f);
+        oxy_data.setValueTextColor(Color.WHITE);
+        oxygen_pie_chart.setData(oxy_data);
+
+        // Temperature chart Settings
+        temp_dataSet.setDrawIcons(false);
+        temp_dataSet.setSliceSpace(3f);
+        temp_dataSet.setIconsOffset(new MPPointF(0, 40));
+        temp_dataSet.setSelectionShift(5f);
+
+        temp_dataSet.setColors(colors);
+
+        PieData temp_data = new PieData(temp_dataSet);
+        temp_data.setValueFormatter(new PercentFormatter());
+        temp_data.setValueTextSize(11f);
+        temp_data.setValueTextColor(Color.BLUE);
+        temperature_pie_chart.setData(temp_data);
+
+        // HeartRate chart Settings
+        hr_dataSet.setDrawIcons(false);
+        hr_dataSet.setSliceSpace(3f);
+        hr_dataSet.setIconsOffset(new MPPointF(0, 40));
+        hr_dataSet.setSelectionShift(5f);
+
+        hr_dataSet.setColors(colors);
+
+        PieData hr_data = new PieData(hr_dataSet);
+        hr_data.setValueFormatter(new PercentFormatter());
+        hr_data.setValueTextSize(11f);
+        hr_data.setValueTextColor(Color.MAGENTA);
+        heartrate_pie_chart.setData(hr_data);
+
+        // Company Health chart Settings
+        comp_health_dataSet.setDrawIcons(false);
+        comp_health_dataSet.setSliceSpace(3f);
+        comp_health_dataSet.setIconsOffset(new MPPointF(0, 40));
+        comp_health_dataSet.setSelectionShift(5f);
+
+        comp_health_dataSet.setColors(colors);
+
+        PieData comp_health_data = new PieData(comp_health_dataSet);
+        comp_health_data.setValueFormatter(new PercentFormatter());
+        comp_health_data.setValueTextSize(11f);
+        comp_health_data.setValueTextColor(Color.LTGRAY);
+        company_health_chart.setData(comp_health_data);
+
         // undo all highlights
         company_health_chart.highlightValues(null);
         oxygen_pie_chart.highlightValues(null);
@@ -666,7 +866,7 @@ public class MainActivity extends AppCompatActivity {
         LineData data = new LineData(dataSets);
         data.setValueTextColor(Color.WHITE);
         data.setValueTextSize(9f);
-        reading_chart.setData(data);
+        complete_reading_chart.setData(data);
         //Format X axis
         ValueFormatter formatter = new ValueFormatter() {
             @Override
@@ -683,7 +883,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        reading_chart.invalidate(); // refresh
+        complete_reading_chart.invalidate(); // refresh
     }
 
     private void add_devices_listeners(){
