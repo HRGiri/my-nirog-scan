@@ -33,6 +33,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -307,6 +308,8 @@ public class SignUpActivity extends AppCompatActivity {
         user.put("email", currentUser.getEmail());
         user.put("organization",organization);
         user.put("phone",phone);
+        user.put("device_list",new ArrayList<>());
+
         Log.d(TAG,"User to be added");
         // Add a new document with a generated ID
         firestore.collection("users").document(currentUser.getUid())
