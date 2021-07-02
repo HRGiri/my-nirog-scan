@@ -6,7 +6,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentOnAttachListener;
 
 import android.Manifest;
 import android.app.Activity;
@@ -35,7 +34,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -50,11 +48,10 @@ import android.widget.Toast;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.SetOptions;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -111,7 +108,8 @@ public class AddDeviceActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         Intent intent = getIntent();
-        FCMtoken = intent.getStringExtra(MainActivity.ADD_DEVICE_EXTRA);
+        FCMtoken = intent.getStringExtra(MainActivity.FCM_TOKEN_EXTRA);
+        deviceID = intent.getStringExtra(MainActivity.DEVICE_ID_EXTRA);
 //        if (savedInstanceState == null) {
 //            fragmentManager = getSupportFragmentManager();
 //            fragmentManager.beginTransaction()
@@ -588,7 +586,7 @@ public class AddDeviceActivity extends AppCompatActivity {
                 unregisterReceiver(wifiScanReceiver);
 //            userID = deviceID = FCMtoken = displayName = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
                 userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                deviceID = userID + "-01";
+//                deviceID = userID + "-01";
 //                displayName = "xxxxxxxxxxxxxxx";
                 String message = userID + "," + deviceID + "," + FCMtoken + "," + displayName + "," + wifiSsid + "," + wifiPassword;
 //            byte[] payload = message.getBytes(StandardCharsets.UTF_8);
@@ -605,6 +603,43 @@ public class AddDeviceActivity extends AppCompatActivity {
         }
     };
 
+    private void createReadingsDocument(){
+        Map<String,Object> readingDoc = new HashMap<>();
+        readingDoc.put("created", FieldValue.serverTimestamp());
+        readingDoc.put("uuid",deviceID);
+
+        // Add a new document with a generated ID
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        firestore.collection("users").document(userID)
+                .collection("Readings")
+                .add(readingDoc)
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        Log.d(FIREBASE_TAG, "DocumentSnapshot add with id " + documentReference.getId());
+                        btGatt.disconnect();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                tvInfo.setText("Configuration complete!");
+                            }
+                        });
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@androidx.annotation.NonNull Exception e) {
+                        Log.w(FIREBASE_TAG, "Error adding document", e);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                tvInfo.setText("Failed to upload to database. Please try again!");
+                            }
+                        });
+                    }
+                });
+
+    }
     private void uploadDeviceDetails() {
         // Create a new user with a first and last name
         Map<String, Object> user = new HashMap<>();
@@ -620,13 +655,14 @@ public class AddDeviceActivity extends AppCompatActivity {
                     @Override
                     public void onSuccess(Void mVoid) {
                         Log.d(FIREBASE_TAG, "DocumentSnapshot updated successfully");
-                        btGatt.disconnect();
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                tvInfo.setText("Configuration complete!");
-                            }
-                        });
+                        createReadingsDocument();
+//                        btGatt.disconnect();
+//                        runOnUiThread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                tvInfo.setText("Configuration complete!");
+//                            }
+//                        });
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {

@@ -1,8 +1,9 @@
-    package com.example.mynirogscan;
+package com.example.mynirogscan;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.util.Pair;
 
 import android.content.Intent;
 import android.graphics.Color;
@@ -38,8 +39,13 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+
+import com.google.android.material.datepicker.MaterialDatePicker;
+import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
+
 import com.google.common.collect.Multimap;
 import com.google.firebase.Timestamp;
+
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -57,6 +63,7 @@ import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.type.DateTime;
 
+
 import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -69,12 +76,16 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
+import static com.example.mynirogscan.Constants.*;
+
 public class MainActivity extends AppCompatActivity {
 
-    public static final String ADD_DEVICE_EXTRA = "com.example.mynirogscan.FCM_TOKEN";
+    public static final String FCM_TOKEN_EXTRA = "com.example.mynirogscan.FCM_TOKEN";
     private static final String TAG = "MAINPAGE";
     public static final String FIREBASE_TAG = "Firebase";
     private static final int RC_SIGN_IN = 1;
+    private static final String DATE_PICKER_TAG = "com.example.mynirogscan.GenerateReportDatePicker";
+    public static final String DEVICE_ID_EXTRA = "com.example.mynirogscan.DEVICE_ID";
     private String token;
     private TextView info;
     private TextView total_visits_value;
@@ -119,6 +130,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // From another Fragment or Activity where you wish to show this
+// PurchaseConfirmationDialogFragment.
+//        new GenerateReoprtFragment().show(getSupportFragmentManager(), GenerateReoprtFragment.TAG);
+//        launchDatePicker();
         mAuth = FirebaseAuth.getInstance();
 //        mAuth.useEmulator("10.0.2.2", 9099);
 
@@ -379,6 +394,47 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void launchDatePicker() {
+        MaterialDatePicker<Pair<Long, Long>> dateRangePicker = MaterialDatePicker.Builder.dateRangePicker()
+                .setTitleText("Select dates")
+                .setSelection(new Pair<>(
+                                MaterialDatePicker.thisMonthInUtcMilliseconds(),
+                                MaterialDatePicker.todayInUtcMilliseconds()
+                        )
+                )
+                .build();
+        dateRangePicker.addOnPositiveButtonClickListener((MaterialPickerOnPositiveButtonClickListener<Pair<Long,Long>>) selection -> {
+            Log.d(TAG,selection.toString());
+
+            // Check if the timestamp exists in current document
+            boolean toFetch = false;
+            for(DocumentSnapshot curr_doc : DeviceReadings){
+                Long created = Long.parseLong(curr_doc.getString(CREATED_FIELD_NAME));
+                if (created > selection.first){
+                    toFetch = true;
+                }
+            }
+            if(toFetch){
+                // Fetch readings matching the time period
+                getDateRangeReadings();
+            }
+            generateCSV();
+
+        });
+        dateRangePicker.show(getSupportFragmentManager(),DATE_PICKER_TAG);
+    }
+
+    private void getDateRangeReadings() {
+        DocumentReference user_document_ref = firestore.collection("users")
+                .document(currentUser.getUid());
+//        user_document_ref.collection(READINGS_DOCUMENT_NAME)
+//                .whereGreaterThan(CREATED_FIELD_NAME,)
+    }
+
+    private void generateCSV() {
+        // TODO: Implement csv generation
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -593,6 +649,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         if (snapshot != null && snapshot.exists()) {
                             DocumentData = snapshot;
+                            Log.d(TAG,generateDeviceId());
                         } else {
                             Log.d(TAG, "No Data");
                         }
@@ -971,10 +1028,28 @@ public class MainActivity extends AppCompatActivity {
      * Method to add a new device
      */
     private void addDevice(){
+        String deviceId = generateDeviceId();
+        Log.d(TAG,deviceId);
         String fcmToken = DocumentData.get("FCMToken").toString();
         Log.d(TAG,fcmToken.length() + "");
         Intent intent = new Intent(MainActivity.this,AddDeviceActivity.class);
-        intent.putExtra(ADD_DEVICE_EXTRA,fcmToken);
+        intent.putExtra(FCM_TOKEN_EXTRA,fcmToken);
+        intent.putExtra(DEVICE_ID_EXTRA,deviceId);
         startActivity(intent);
+    }
+
+    /**
+     * Method to generate a new id
+     */
+    private String generateDeviceId(){
+        ArrayList<Map<String,String>> deviceList = (ArrayList<Map<String, String>>) DocumentData.get("device_list");
+        if(deviceList == null){
+            return currentUser.getUid() + "-01";
+        }
+        else {
+            Log.d(TAG, String.valueOf(deviceList.size()));
+
+            return String.format(currentUser.getUid() + "-%02d",deviceList.size() + 1);
+        }
     }
 }

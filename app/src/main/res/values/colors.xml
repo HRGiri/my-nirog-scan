@@ -9,4 +9,7 @@
     <color name="white">#FFFFFFFF</color>
     <color name="off_white">#EEEEF7</color>
     <color name="dark_blue">#01203A</color>
+    <color name="surface_color">#1976D2</color>
+    <color name="color_on_error">#E64A19</color>
+    <color name="color_on_surface">#388E3C</color>
 </resources>
