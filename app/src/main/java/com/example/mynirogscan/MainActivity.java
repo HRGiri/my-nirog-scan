@@ -1,4 +1,4 @@
-    package com.example.mynirogscan;
+package com.example.mynirogscan;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -62,6 +62,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.TreeMap;
+
+import static com.example.mynirogscan.Constants.*;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -333,10 +335,34 @@ public class MainActivity extends AppCompatActivity {
                 .build();
         dateRangePicker.addOnPositiveButtonClickListener((MaterialPickerOnPositiveButtonClickListener<Pair<Long,Long>>) selection -> {
             Log.d(TAG,selection.toString());
-            // TODO: Implement csv generation
+
             // Check if the timestamp exists in current document
+            boolean toFetch = false;
+            for(DocumentSnapshot curr_doc : DeviceReadings){
+                Long created = Long.parseLong(curr_doc.getString(CREATED_FIELD_NAME));
+                if (created > selection.first){
+                    toFetch = true;
+                }
+            }
+            if(toFetch){
+                // Fetch readings matching the time period
+                getDateRangeReadings();
+            }
+            generateCSV();
+
         });
         dateRangePicker.show(getSupportFragmentManager(),DATE_PICKER_TAG);
+    }
+
+    private void getDateRangeReadings() {
+        DocumentReference user_document_ref = firestore.collection("users")
+                .document(currentUser.getUid());
+//        user_document_ref.collection(READINGS_DOCUMENT_NAME)
+//                .whereGreaterThan(CREATED_FIELD_NAME,)
+    }
+
+    private void generateCSV() {
+        // TODO: Implement csv generation
     }
 
     @Override
