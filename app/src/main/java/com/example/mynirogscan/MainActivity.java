@@ -13,12 +13,16 @@ import android.widget.TextView;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
 import com.github.mikephil.charting.animation.Easing;
+import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.components.AxisBase;
 import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
@@ -34,6 +38,8 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.common.collect.Multimap;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -49,7 +55,9 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.type.DateTime;
 
+import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,6 +65,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
@@ -72,7 +81,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView oxygen_value;
     private TextView heartrate_value;
     private TextView temperature_value;
-    private LineChart complete_reading_chart;
     private LineChart oxygen_reading_chart;
     private LineChart temperature_reading_chart;
     private LineChart heartrate_reading_chart;
@@ -80,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
     private PieChart oxygen_pie_chart;
     private PieChart temperature_pie_chart;
     private PieChart heartrate_pie_chart;
+    private BarChart daily_visit_chart;
     public FirebaseAuth mAuth;
     private FirebaseFirestore firestore;
     private FirebaseUser currentUser;
@@ -124,43 +133,13 @@ public class MainActivity extends AppCompatActivity {
         temperature_value = findViewById(R.id.temperature_card);
         heartrate_value = findViewById(R.id.heartrate_card);
 
+        /*Daily visit chart*/
+        daily_visit_chart = findViewById(R.id.visit_chart);
+
         /*Reading Chart settings*/
-        complete_reading_chart = findViewById(R.id.complete_reading_history_chart);
         oxygen_reading_chart = findViewById(R.id.oxygen_reading_history_chart);
         temperature_reading_chart = findViewById(R.id.temperature_reading_history_chart);
         heartrate_reading_chart = findViewById(R.id.heartrate_reading_history_chart);
-
-        //Complete Reading History chart settings
-        // enable scaling and dragging
-        complete_reading_chart.setDragEnabled(true);
-        complete_reading_chart.setScaleEnabled(true);
-        complete_reading_chart.setDrawGridBackground(false);
-        complete_reading_chart.setHighlightPerDragEnabled(true);
-        complete_reading_chart.setPinchZoom(true);
-        complete_reading_chart.setBackgroundColor(Color.TRANSPARENT);
-        xAxis = complete_reading_chart.getXAxis();
-        complete_reading_chart.animateX(1500);
-
-
-        xAxis.setTextSize(11f);
-        xAxis.setTextColor(Color.MAGENTA);
-        xAxis.setDrawGridLines(false);
-        xAxis.setDrawAxisLine(false);
-
-        YAxis leftAxis = complete_reading_chart.getAxisLeft();
-        leftAxis.setTextColor(ColorTemplate.getHoloBlue());
-        leftAxis.setAxisMaximum(120f);
-        leftAxis.setAxisMinimum(90f);
-        leftAxis.setDrawGridLines(true);
-        leftAxis.setGranularityEnabled(true);
-
-        YAxis rightAxis = complete_reading_chart.getAxisRight();
-        rightAxis.setTextColor(Color.RED);
-        rightAxis.setAxisMaximum(200f);
-        rightAxis.setAxisMinimum(20f);
-        rightAxis.setDrawGridLines(false);
-        rightAxis.setDrawZeroLine(false);
-        rightAxis.setGranularityEnabled(true);
 
         //Oxygen Reading History chart settings
         // enable scaling and dragging
@@ -529,11 +508,12 @@ public class MainActivity extends AppCompatActivity {
                     all_readings.put(int_key,curr_device_readings.get(key));
                 }
         }
-         all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings);
-
+         all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings).descendingMap();
+        Log.d(TAG,"sorted list "+all_readings_sorted.keySet());
         update_top_table();
         populate_reading_history_chart();
         populate_company_health_chart();
+        populate_daily_visit_chart();
     }
 
 
@@ -679,13 +659,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        Log.d(TAG,"Bad Oxygen  "+bad_oxy_count);
-        Log.d(TAG,"Bad Heartrate "+bad_hr_count);
-        Log.d(TAG,"Bad temperature"+bad_temp_count);
-        Log.d(TAG,"Bands"+green_band);
-        Log.d(TAG,"Total Reads"+total_reads);
-
-
         ArrayList<PieEntry> pie_comp_health_chart_entries = new ArrayList<>();
         pie_comp_health_chart_entries.add(new PieEntry(((float)(green_band)/total_reads)*100f,"Healthy"));
         pie_comp_health_chart_entries.add(new PieEntry(((float)(yellow_band)/total_reads)*100f,"Unfit"));
@@ -710,11 +683,6 @@ public class MainActivity extends AppCompatActivity {
         PieDataSet hr_dataSet = new PieDataSet(pie_hr_chart_entries, "Heart Rate Reading Report");
         PieDataSet comp_health_dataSet = new PieDataSet(pie_comp_health_chart_entries, "Company Health Report");
 
-
-        Log.d(TAG,"Oxygen entries "+pie_oxy_chart_entries.toString());
-        Log.d(TAG,"heartrate entries "+pie_hr_chart_entries.toString());
-        Log.d(TAG,"temperature entries "+pie_temp_chart_entries.toString());
-        Log.d(TAG,"Comp entries"+pie_comp_health_chart_entries.toString());
         // Common colors initialization
 
         ArrayList<Integer> colors = new ArrayList<>();
@@ -813,9 +781,17 @@ public class MainActivity extends AppCompatActivity {
         List<Entry> heartrate_entries = new ArrayList<Entry>();
         Map<Float,String> timestamp_string = new HashMap<Float, String>();
         counter = 0f;
-        for (Number timestamp: all_readings_sorted.keySet()) {
+         Set<Number> timestamp_keyset = all_readings_sorted.keySet();
+         Number time_diff =  (long)timestamp_keyset.toArray()[0] - (long)timestamp_keyset.toArray()[49];
+         Log.d(TAG,"Time diff is "+time_diff);
+        SimpleDateFormat dateformat;
+         if((long)time_diff < (long)(3600*24*1000)){
+             dateformat = new SimpleDateFormat("HH:mm");
+         }else{
+             dateformat = new SimpleDateFormat("dd-MM HH:mm");
+         }
+        for (Number timestamp: timestamp_keyset) {
             Date date = new Date((long)timestamp);
-            SimpleDateFormat dateformat = new SimpleDateFormat("dd-MM HH:mm");
             dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
             String xaxis_timestamp = dateformat.format(date);
 
@@ -824,50 +800,40 @@ public class MainActivity extends AppCompatActivity {
             temperature_entries.add(new Entry((float)counter, all_readings_sorted.get(timestamp).get("temperature").floatValue()));
             heartrate_entries.add(new Entry((float)counter, all_readings_sorted.get(timestamp).get("heartrate").floatValue()));
             counter = counter + 1f;
+            if(counter > 50f){
+                break;
+            }
         }
         counter = 0f;
         LineDataSet setOxygen = new LineDataSet(oxygen_entries,"Oxygen");
         setOxygen.setAxisDependency(YAxis.AxisDependency.RIGHT);
         setOxygen.setColor(ColorTemplate.getHoloBlue());
-        setOxygen.setCircleColor(Color.WHITE);
-        setOxygen.setLineWidth(2f);
-        setOxygen.setCircleRadius(3f);
+        setOxygen.setLineWidth(1f);
+        setOxygen.setDrawCircles(false);
         setOxygen.setFillAlpha(65);
         setOxygen.setFillColor(ColorTemplate.getHoloBlue());
         setOxygen.setHighLightColor(Color.rgb(244, 117, 117));
-        setOxygen.setDrawCircleHole(false);
 
         LineDataSet setTemperature = new LineDataSet(temperature_entries,"Temperature");
         setTemperature.setAxisDependency(YAxis.AxisDependency.LEFT);
         setTemperature.setColor(Color.RED);
-        setTemperature.setCircleColor(Color.WHITE);
-        setTemperature.setLineWidth(2f);
-        setTemperature.setCircleRadius(3f);
+        setTemperature.setLineWidth(1f);
+        setTemperature.setDrawCircles(false);
         setTemperature.setFillAlpha(65);
         setTemperature.setFillColor(Color.RED);
-        setTemperature.setDrawCircleHole(false);
         setTemperature.setHighLightColor(Color.rgb(244, 117, 117));
 
         LineDataSet setHeartrate = new LineDataSet(heartrate_entries,"Heart Rate");
         setHeartrate.setAxisDependency(YAxis.AxisDependency.RIGHT);
         setHeartrate.setColor(Color.YELLOW);
-        setHeartrate.setCircleColor(Color.WHITE);
-        setHeartrate.setLineWidth(2f);
-        setHeartrate.setCircleRadius(3f);
+        setHeartrate.setLineWidth(1f);
+        setHeartrate.setDrawCircles(false);
         setHeartrate.setFillAlpha(65);
         setHeartrate.setFillColor(ColorTemplate.colorWithAlpha(Color.YELLOW, 200));
-        setHeartrate.setDrawCircleHole(false);
         setHeartrate.setHighLightColor(Color.rgb(244, 117, 117));
 
-        List<ILineDataSet> dataSets = new ArrayList<ILineDataSet>();
-        dataSets.add(setOxygen);
-        dataSets.add(setTemperature);
-        dataSets.add(setHeartrate);
-        LineData data = new LineData(dataSets);
-        data.setValueTextColor(Color.WHITE);
-        data.setValueTextSize(9f);
-        complete_reading_chart.setData(data);
-        //Format X axis
+
+        //X axis Formatter
         ValueFormatter formatter = new ValueFormatter() {
             @Override
             public String getAxisLabel(float value, AxisBase axis) {
@@ -876,14 +842,93 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        xAxis.setLabelRotationAngle(90f);
-        xAxis.setGranularity(3600000f);
-        xAxis.setPosition(XAxis.XAxisPosition.TOP_INSIDE);
-        xAxis.setValueFormatter(formatter);
+        LineData oxy_data = new LineData(setOxygen);
+        oxy_data.setValueTextColor(Color.WHITE);
+        oxy_data.setValueTextSize(9f);
+        oxygen_xAxis.setGranularity(1f);
+        oxygen_xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        oxygen_xAxis.setValueFormatter(formatter);
+        oxygen_reading_chart.setData(oxy_data);
 
+        LineData temp_data = new LineData(setTemperature);
+        temp_data.setValueTextColor(Color.WHITE);
+        temp_data.setValueTextSize(9f);
+        temperature_xAxis.setGranularity(1f);
+        temperature_xAxis.setPosition(XAxis.XAxisPosition.TOP);
+        temperature_xAxis.setValueFormatter(formatter);
+        temperature_reading_chart.setData(temp_data);
 
+        LineData hr_data = new LineData(setHeartrate);
+        hr_data.setValueTextColor(Color.WHITE);
+        hr_data.setValueTextSize(9f);
+        heartrate_xAxis.setGranularity(1f);
+        heartrate_xAxis.setPosition(XAxis.XAxisPosition.TOP);
+        heartrate_xAxis.setValueFormatter(formatter);
+        heartrate_reading_chart.setData(hr_data);
 
-        complete_reading_chart.invalidate(); // refresh
+        // refresh Charts
+        oxygen_reading_chart.invalidate();
+        temperature_reading_chart.invalidate();
+        heartrate_reading_chart.invalidate();
+    }
+
+    public void populate_daily_visit_chart(){
+        Set<Number> timestamps = all_readings_sorted.keySet();
+        Map<String, float[]> bar_entry = new HashMap<String,float[]>();
+        SimpleDateFormat format_w_date = new SimpleDateFormat("dd/MM");
+        for(Number timestamp : timestamps){
+            Date curr_date = new Date((long) timestamp);
+            format_w_date.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
+            String date_string = format_w_date.format(curr_date);
+            float oxygen_val = all_readings_sorted.get(timestamp).get("oxygen").floatValue();
+            float temp_val = all_readings_sorted.get(timestamp).get("temperature").floatValue();
+            float hr_val = all_readings_sorted.get(timestamp).get("heartrate").floatValue();
+            boolean health_criteria_passed = (oxygen_val > MIN_OXY_LIM)
+                    && (temp_val > MIN_TEMPERATURE)
+                    && (temp_val < MAX_TEMPERATURE)
+                    && (hr_val > MIN_HEARTRATE)
+                    && (hr_val < MAX_HEARTRATE);
+            float[] report = {0,0};    // 0 = Healthy count ; 1 unhealthy count
+            if(bar_entry.containsKey(date_string)){
+                float healthy = bar_entry.get(date_string)[0];
+                float unhealthy = bar_entry.get(date_string)[1];
+                if(health_criteria_passed){
+                    healthy = healthy+1;
+                }
+                else{
+                    unhealthy = unhealthy+1;
+                }
+                report[0] = healthy;
+                report[1] = unhealthy;
+                bar_entry.put(date_string, report);
+            }
+            else{
+                if(health_criteria_passed){
+                    report[0] = 1;
+                    report[1] = 0;
+                }
+                else{
+                    report[0] = 0;
+                    report[1] = 1;
+                }
+                bar_entry.put(date_string,report);
+            }
+        }
+        Log.d(TAG,bar_entry.toString());
+
+        List<BarEntry> entries = new ArrayList<>();
+        float count = 0f;
+        for(String day : bar_entry.keySet()){
+            entries.add(new BarEntry(count,bar_entry.get(day)));
+            count = count + 1f;
+        }
+        Log.d(TAG,entries.toString());
+        BarDataSet healthset = new BarDataSet(entries, "BarDataSet");
+        BarData data = new BarData(healthset);
+        data.setBarWidth(1f);
+        daily_visit_chart.setData(data);
+//        daily_visit_chart.setFitBars(true);
+        daily_visit_chart.invalidate();
     }
 
     private void add_devices_listeners(){
