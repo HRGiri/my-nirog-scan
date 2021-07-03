@@ -132,270 +132,278 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.home_screen);
 //        setContentView(R.layout.home_screen);
+
+        if (savedInstanceState == null) {
+            HomeFragment fragment = new HomeFragment();
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(R.id.home_fragment, fragment)
+                    .commit();
+        }
 
         // From another Fragment or Activity where you wish to show this
 // PurchaseConfirmationDialogFragment.
 //        new GenerateReoprtFragment().show(getSupportFragmentManager(), GenerateReoprtFragment.TAG);
 //        launchDatePicker();
-        mAuth = FirebaseAuth.getInstance();
-//        mAuth.useEmulator("10.0.2.2", 9099);
-
-        firestore = FirebaseFirestore.getInstance();
-        firestore.enableNetwork();
-//        emulatorSettings();
-
-        info = findViewById(R.id.tv_main);
-
-        total_visits_value = findViewById(R.id.total_visitors_card);
-        oxygen_value = findViewById(R.id.oxygen_card);
-        temperature_value = findViewById(R.id.temperature_card);
-        heartrate_value = findViewById(R.id.heartrate_card);
-
-        /*Daily visit chart*/
-        daily_visit_chart = findViewById(R.id.visit_chart);
-
-        /*Reading Chart settings*/
-        oxygen_reading_chart = findViewById(R.id.oxygen_reading_history_chart);
-        temperature_reading_chart = findViewById(R.id.temperature_reading_history_chart);
-        heartrate_reading_chart = findViewById(R.id.heartrate_reading_history_chart);
-
-        //Oxygen Reading History chart settings
-        // enable scaling and dragging
-        oxygen_reading_chart.setDragEnabled(true);
-        oxygen_reading_chart.setScaleEnabled(true);
-        oxygen_reading_chart.setDrawGridBackground(false);
-        oxygen_reading_chart.setHighlightPerDragEnabled(true);
-        oxygen_reading_chart.setPinchZoom(true);
-        oxygen_reading_chart.setBackgroundColor(Color.TRANSPARENT);
-        oxygen_xAxis = oxygen_reading_chart.getXAxis();
-        oxygen_reading_chart.animateX(1500);
-
-
-        oxygen_xAxis.setTextSize(11f);
-        oxygen_xAxis.setTextColor(Color.MAGENTA);
-        oxygen_xAxis.setDrawGridLines(false);
-        oxygen_xAxis.setDrawAxisLine(false);
-
-        YAxis OxyleftAxis = oxygen_reading_chart.getAxisLeft();
-        OxyleftAxis.setTextColor(ColorTemplate.getHoloBlue());
-        OxyleftAxis.setAxisMaximum(100f);
-        OxyleftAxis.setAxisMinimum(75f);
-        OxyleftAxis.setDrawGridLines(true);
-        OxyleftAxis.setGranularityEnabled(true);
-
-
-        //Temperature Reading History chart settings
-        // enable scaling and dragging
-        temperature_reading_chart.setDragEnabled(true);
-        temperature_reading_chart.setScaleEnabled(true);
-        temperature_reading_chart.setDrawGridBackground(false);
-        temperature_reading_chart.setHighlightPerDragEnabled(true);
-        temperature_reading_chart.setPinchZoom(true);
-        temperature_reading_chart.setBackgroundColor(Color.TRANSPARENT);
-        temperature_xAxis = temperature_reading_chart.getXAxis();
-        temperature_reading_chart.animateX(1500);
-
-
-        temperature_xAxis.setTextSize(11f);
-        temperature_xAxis.setTextColor(Color.MAGENTA);
-        temperature_xAxis.setDrawGridLines(false);
-        temperature_xAxis.setDrawAxisLine(false);
-
-        YAxis templeftAxis = temperature_reading_chart.getAxisLeft();
-        templeftAxis.setTextColor(ColorTemplate.getHoloBlue());
-        templeftAxis.setAxisMaximum(120f);
-        templeftAxis.setAxisMinimum(90f);
-        templeftAxis.setDrawGridLines(true);
-        templeftAxis.setGranularityEnabled(true);
-
-        //Heartrate Reading History chart settings
-        // enable scaling and dragging
-        heartrate_reading_chart.setDragEnabled(true);
-        heartrate_reading_chart.setScaleEnabled(true);
-        heartrate_reading_chart.setDrawGridBackground(false);
-        heartrate_reading_chart.setHighlightPerDragEnabled(true);
-        heartrate_reading_chart.setPinchZoom(true);
-        heartrate_reading_chart.setBackgroundColor(Color.TRANSPARENT);
-        heartrate_xAxis = heartrate_reading_chart.getXAxis();
-        heartrate_reading_chart.animateX(1500);
-
-
-        heartrate_xAxis.setTextSize(11f);
-        heartrate_xAxis.setTextColor(Color.MAGENTA);
-        heartrate_xAxis.setDrawGridLines(false);
-        heartrate_xAxis.setDrawAxisLine(false);
-
-        YAxis hrleftAxis = heartrate_reading_chart.getAxisLeft();
-        hrleftAxis.setTextColor(ColorTemplate.getHoloBlue());
-        hrleftAxis.setAxisMaximum(200f);
-        hrleftAxis.setAxisMinimum(20f);
-        hrleftAxis.setDrawGridLines(true);
-        hrleftAxis.setGranularityEnabled(true);
-
-
-        //############## Pie Chart settings
-        //########## Company Health Chart
-        company_health_chart = findViewById(R.id.company_health_chart);
-
-        company_health_chart.setUsePercentValues(true);
-        company_health_chart.getDescription().setEnabled(false);
-        company_health_chart.setExtraOffsets(5, 5, 5, 5);
-
-
-        company_health_chart.setDragDecelerationFrictionCoef(0.95f);
-
-        company_health_chart.setDrawHoleEnabled(true);
-        company_health_chart.setHoleColor(Color.WHITE);
-
-        company_health_chart.setTransparentCircleColor(Color.WHITE);
-        company_health_chart.setTransparentCircleAlpha(110);
-
-        company_health_chart.setHoleRadius(58f);
-        company_health_chart.setTransparentCircleRadius(61f);
-
-        company_health_chart.setDrawCenterText(true);
-
-        company_health_chart.setRotationAngle(0);
-        // enable rotation of the chart by touch
-        company_health_chart.setRotationEnabled(true);
-        company_health_chart.setHighlightPerTapEnabled(true);
-
-
-        company_health_chart.animateY(1400, Easing.EaseInOutQuad);
-
-        Legend l = company_health_chart.getLegend();
-        l.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
-        l.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
-        l.setOrientation(Legend.LegendOrientation.VERTICAL);
-        l.setDrawInside(false);
-        l.setXEntrySpace(7f);
-        l.setYEntrySpace(0f);
-        l.setYOffset(0f);
-
-        // entry label styling
-        company_health_chart.setEntryLabelColor(Color.WHITE);
-        company_health_chart.setEntryLabelTextSize(12f);
-
-        //##### Oxygen Chart
-
-        oxygen_pie_chart = findViewById(R.id.oxygen_chart);
-        oxygen_pie_chart.setUsePercentValues(true);
-        oxygen_pie_chart.getDescription().setEnabled(false);
-        oxygen_pie_chart.setExtraOffsets(5, 5, 5, 5);
-        oxygen_pie_chart.setDragDecelerationFrictionCoef(0.95f);
-        oxygen_pie_chart.setDrawHoleEnabled(true);
-        oxygen_pie_chart.setHoleColor(Color.WHITE);
-        oxygen_pie_chart.setTransparentCircleColor(Color.WHITE);
-        oxygen_pie_chart.setTransparentCircleAlpha(110);
-        oxygen_pie_chart.setHoleRadius(58f);
-        oxygen_pie_chart.setTransparentCircleRadius(61f);
-        oxygen_pie_chart.setDrawCenterText(true);
-        oxygen_pie_chart.setRotationAngle(0);
-        // enable rotation of the chart by touch
-        oxygen_pie_chart.setRotationEnabled(true);
-        oxygen_pie_chart.setHighlightPerTapEnabled(true);
-        oxygen_pie_chart.animateY(1400, Easing.EaseInOutQuad);
-        Legend oxygen_legend = oxygen_pie_chart.getLegend();
-        oxygen_legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
-        oxygen_legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
-        oxygen_legend.setOrientation(Legend.LegendOrientation.VERTICAL);
-        oxygen_legend.setDrawInside(false);
-        oxygen_legend.setXEntrySpace(7f);
-        oxygen_legend.setYEntrySpace(0f);
-        oxygen_legend.setYOffset(0f);
-
-
-        //##### Temperature Chart
-
-        temperature_pie_chart = findViewById(R.id.temperature_chart);
-        temperature_pie_chart.setUsePercentValues(true);
-        temperature_pie_chart.getDescription().setEnabled(false);
-        temperature_pie_chart.setExtraOffsets(5, 5, 5, 5);
-        temperature_pie_chart.setDragDecelerationFrictionCoef(0.95f);
-        temperature_pie_chart.setDrawHoleEnabled(true);
-        temperature_pie_chart.setHoleColor(Color.TRANSPARENT);
-        temperature_pie_chart.setTransparentCircleColor(Color.BLUE);
-        temperature_pie_chart.setTransparentCircleAlpha(110);
-        temperature_pie_chart.setHoleRadius(58f);
-        temperature_pie_chart.setTransparentCircleRadius(61f);
-        temperature_pie_chart.setDrawCenterText(true);
-        temperature_pie_chart.setRotationAngle(0);
-        // enable rotation of the chart by touch
-        temperature_pie_chart.setRotationEnabled(true);
-        temperature_pie_chart.setHighlightPerTapEnabled(true);
-        temperature_pie_chart.animateY(1400, Easing.EaseInOutQuad);
-        Legend temperature_legend = temperature_pie_chart.getLegend();
-        temperature_legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
-        temperature_legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
-        temperature_legend.setOrientation(Legend.LegendOrientation.VERTICAL);
-        temperature_legend.setDrawInside(false);
-        temperature_legend.setXEntrySpace(7f);
-        temperature_legend.setYEntrySpace(0f);
-        temperature_legend.setYOffset(0f);
-
-        // entry label styling
-        temperature_pie_chart.setEntryLabelColor(Color.WHITE);
-        temperature_pie_chart.setEntryLabelTextSize(12f);
-
-        //##### Heartrate Chart
-
-        heartrate_pie_chart = findViewById(R.id.heartrate_chart);
-        heartrate_pie_chart.setUsePercentValues(true);
-        heartrate_pie_chart.getDescription().setEnabled(false);
-        heartrate_pie_chart.setExtraOffsets(5, 5, 5, 5);
-        heartrate_pie_chart.setDragDecelerationFrictionCoef(0.95f);
-        heartrate_pie_chart.setDrawHoleEnabled(true);
-        heartrate_pie_chart.setHoleColor(Color.WHITE);
-        heartrate_pie_chart.setTransparentCircleColor(Color.WHITE);
-        heartrate_pie_chart.setTransparentCircleAlpha(110);
-        heartrate_pie_chart.setHoleRadius(58f);
-        heartrate_pie_chart.setTransparentCircleRadius(61f);
-        heartrate_pie_chart.setDrawCenterText(true);
-        heartrate_pie_chart.setRotationAngle(0);
-        // enable rotation of the chart by touch
-        heartrate_pie_chart.setRotationEnabled(true);
-        heartrate_pie_chart.setHighlightPerTapEnabled(true);
-        heartrate_pie_chart.animateY(1400, Easing.EaseInOutQuad);
-        Legend heartrate_legend = heartrate_pie_chart.getLegend();
-        heartrate_legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
-        heartrate_legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
-        heartrate_legend.setOrientation(Legend.LegendOrientation.VERTICAL);
-        heartrate_legend.setDrawInside(false);
-        heartrate_legend.setXEntrySpace(7f);
-        heartrate_legend.setYEntrySpace(0f);
-        heartrate_legend.setYOffset(0f);
-
-        // entry label styling
-        heartrate_pie_chart.setEntryLabelColor(Color.BLACK);
-        heartrate_pie_chart.setEntryLabelTextSize(12f);
-
-
-        // Check if user is signed in (non-null) and update UI accordingly.
-        currentUser = mAuth.getCurrentUser();
-        if(currentUser == null){
-            //TODO: Proceed to SignIn Menu
-//            startActivity(new Intent(getApplicationContext(),LoginActivity.class));
-            // Choose authentication providers
-            List<AuthUI.IdpConfig> providers = Arrays.asList(
-                    new AuthUI.IdpConfig.EmailBuilder().enableEmailLinkSignIn()
-                            .setActionCodeSettings(buildActionCodeSettings()).build(),
-                    new AuthUI.IdpConfig.GoogleBuilder().build());
-
-
-            startActivityForResult(
-                    AuthUI.getInstance()
-                            .createSignInIntentBuilder()
-                            .setAvailableProviders(providers)
-                            .build(),
-                    RC_SIGN_IN);
-
-        }
-        else {
-            update_data();
-
-        }
+//        mAuth = FirebaseAuth.getInstance();
+////        mAuth.useEmulator("10.0.2.2", 9099);
+//
+//        firestore = FirebaseFirestore.getInstance();
+//        firestore.enableNetwork();
+////        emulatorSettings();
+//
+//        info = findViewById(R.id.tv_main);
+//
+//        total_visits_value = findViewById(R.id.total_visitors_card);
+//        oxygen_value = findViewById(R.id.oxygen_card);
+//        temperature_value = findViewById(R.id.temperature_card);
+//        heartrate_value = findViewById(R.id.heartrate_card);
+//
+//        /*Daily visit chart*/
+//        daily_visit_chart = findViewById(R.id.visit_chart);
+//
+//        /*Reading Chart settings*/
+//        oxygen_reading_chart = findViewById(R.id.oxygen_reading_history_chart);
+//        temperature_reading_chart = findViewById(R.id.temperature_reading_history_chart);
+//        heartrate_reading_chart = findViewById(R.id.heartrate_reading_history_chart);
+//
+//        //Oxygen Reading History chart settings
+//        // enable scaling and dragging
+//        oxygen_reading_chart.setDragEnabled(true);
+//        oxygen_reading_chart.setScaleEnabled(true);
+//        oxygen_reading_chart.setDrawGridBackground(false);
+//        oxygen_reading_chart.setHighlightPerDragEnabled(true);
+//        oxygen_reading_chart.setPinchZoom(true);
+//        oxygen_reading_chart.setBackgroundColor(Color.TRANSPARENT);
+//        oxygen_xAxis = oxygen_reading_chart.getXAxis();
+//        oxygen_reading_chart.animateX(1500);
+//
+//
+//        oxygen_xAxis.setTextSize(11f);
+//        oxygen_xAxis.setTextColor(Color.MAGENTA);
+//        oxygen_xAxis.setDrawGridLines(false);
+//        oxygen_xAxis.setDrawAxisLine(false);
+//
+//        YAxis OxyleftAxis = oxygen_reading_chart.getAxisLeft();
+//        OxyleftAxis.setTextColor(ColorTemplate.getHoloBlue());
+//        OxyleftAxis.setAxisMaximum(100f);
+//        OxyleftAxis.setAxisMinimum(75f);
+//        OxyleftAxis.setDrawGridLines(true);
+//        OxyleftAxis.setGranularityEnabled(true);
+//
+//
+//        //Temperature Reading History chart settings
+//        // enable scaling and dragging
+//        temperature_reading_chart.setDragEnabled(true);
+//        temperature_reading_chart.setScaleEnabled(true);
+//        temperature_reading_chart.setDrawGridBackground(false);
+//        temperature_reading_chart.setHighlightPerDragEnabled(true);
+//        temperature_reading_chart.setPinchZoom(true);
+//        temperature_reading_chart.setBackgroundColor(Color.TRANSPARENT);
+//        temperature_xAxis = temperature_reading_chart.getXAxis();
+//        temperature_reading_chart.animateX(1500);
+//
+//
+//        temperature_xAxis.setTextSize(11f);
+//        temperature_xAxis.setTextColor(Color.MAGENTA);
+//        temperature_xAxis.setDrawGridLines(false);
+//        temperature_xAxis.setDrawAxisLine(false);
+//
+//        YAxis templeftAxis = temperature_reading_chart.getAxisLeft();
+//        templeftAxis.setTextColor(ColorTemplate.getHoloBlue());
+//        templeftAxis.setAxisMaximum(120f);
+//        templeftAxis.setAxisMinimum(90f);
+//        templeftAxis.setDrawGridLines(true);
+//        templeftAxis.setGranularityEnabled(true);
+//
+//        //Heartrate Reading History chart settings
+//        // enable scaling and dragging
+//        heartrate_reading_chart.setDragEnabled(true);
+//        heartrate_reading_chart.setScaleEnabled(true);
+//        heartrate_reading_chart.setDrawGridBackground(false);
+//        heartrate_reading_chart.setHighlightPerDragEnabled(true);
+//        heartrate_reading_chart.setPinchZoom(true);
+//        heartrate_reading_chart.setBackgroundColor(Color.TRANSPARENT);
+//        heartrate_xAxis = heartrate_reading_chart.getXAxis();
+//        heartrate_reading_chart.animateX(1500);
+//
+//
+//        heartrate_xAxis.setTextSize(11f);
+//        heartrate_xAxis.setTextColor(Color.MAGENTA);
+//        heartrate_xAxis.setDrawGridLines(false);
+//        heartrate_xAxis.setDrawAxisLine(false);
+//
+//        YAxis hrleftAxis = heartrate_reading_chart.getAxisLeft();
+//        hrleftAxis.setTextColor(ColorTemplate.getHoloBlue());
+//        hrleftAxis.setAxisMaximum(200f);
+//        hrleftAxis.setAxisMinimum(20f);
+//        hrleftAxis.setDrawGridLines(true);
+//        hrleftAxis.setGranularityEnabled(true);
+//
+//
+//        //############## Pie Chart settings
+//        //########## Company Health Chart
+//        company_health_chart = findViewById(R.id.company_health_chart);
+//
+//        company_health_chart.setUsePercentValues(true);
+//        company_health_chart.getDescription().setEnabled(false);
+//        company_health_chart.setExtraOffsets(5, 5, 5, 5);
+//
+//
+//        company_health_chart.setDragDecelerationFrictionCoef(0.95f);
+//
+//        company_health_chart.setDrawHoleEnabled(true);
+//        company_health_chart.setHoleColor(Color.WHITE);
+//
+//        company_health_chart.setTransparentCircleColor(Color.WHITE);
+//        company_health_chart.setTransparentCircleAlpha(110);
+//
+//        company_health_chart.setHoleRadius(58f);
+//        company_health_chart.setTransparentCircleRadius(61f);
+//
+//        company_health_chart.setDrawCenterText(true);
+//
+//        company_health_chart.setRotationAngle(0);
+//        // enable rotation of the chart by touch
+//        company_health_chart.setRotationEnabled(true);
+//        company_health_chart.setHighlightPerTapEnabled(true);
+//
+//
+//        company_health_chart.animateY(1400, Easing.EaseInOutQuad);
+//
+//        Legend l = company_health_chart.getLegend();
+//        l.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
+//        l.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
+//        l.setOrientation(Legend.LegendOrientation.VERTICAL);
+//        l.setDrawInside(false);
+//        l.setXEntrySpace(7f);
+//        l.setYEntrySpace(0f);
+//        l.setYOffset(0f);
+//
+//        // entry label styling
+//        company_health_chart.setEntryLabelColor(Color.WHITE);
+//        company_health_chart.setEntryLabelTextSize(12f);
+//
+//        //##### Oxygen Chart
+//
+//        oxygen_pie_chart = findViewById(R.id.oxygen_chart);
+//        oxygen_pie_chart.setUsePercentValues(true);
+//        oxygen_pie_chart.getDescription().setEnabled(false);
+//        oxygen_pie_chart.setExtraOffsets(5, 5, 5, 5);
+//        oxygen_pie_chart.setDragDecelerationFrictionCoef(0.95f);
+//        oxygen_pie_chart.setDrawHoleEnabled(true);
+//        oxygen_pie_chart.setHoleColor(Color.WHITE);
+//        oxygen_pie_chart.setTransparentCircleColor(Color.WHITE);
+//        oxygen_pie_chart.setTransparentCircleAlpha(110);
+//        oxygen_pie_chart.setHoleRadius(58f);
+//        oxygen_pie_chart.setTransparentCircleRadius(61f);
+//        oxygen_pie_chart.setDrawCenterText(true);
+//        oxygen_pie_chart.setRotationAngle(0);
+//        // enable rotation of the chart by touch
+//        oxygen_pie_chart.setRotationEnabled(true);
+//        oxygen_pie_chart.setHighlightPerTapEnabled(true);
+//        oxygen_pie_chart.animateY(1400, Easing.EaseInOutQuad);
+//        Legend oxygen_legend = oxygen_pie_chart.getLegend();
+//        oxygen_legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
+//        oxygen_legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
+//        oxygen_legend.setOrientation(Legend.LegendOrientation.VERTICAL);
+//        oxygen_legend.setDrawInside(false);
+//        oxygen_legend.setXEntrySpace(7f);
+//        oxygen_legend.setYEntrySpace(0f);
+//        oxygen_legend.setYOffset(0f);
+//
+//
+//        //##### Temperature Chart
+//
+//        temperature_pie_chart = findViewById(R.id.temperature_chart);
+//        temperature_pie_chart.setUsePercentValues(true);
+//        temperature_pie_chart.getDescription().setEnabled(false);
+//        temperature_pie_chart.setExtraOffsets(5, 5, 5, 5);
+//        temperature_pie_chart.setDragDecelerationFrictionCoef(0.95f);
+//        temperature_pie_chart.setDrawHoleEnabled(true);
+//        temperature_pie_chart.setHoleColor(Color.TRANSPARENT);
+//        temperature_pie_chart.setTransparentCircleColor(Color.BLUE);
+//        temperature_pie_chart.setTransparentCircleAlpha(110);
+//        temperature_pie_chart.setHoleRadius(58f);
+//        temperature_pie_chart.setTransparentCircleRadius(61f);
+//        temperature_pie_chart.setDrawCenterText(true);
+//        temperature_pie_chart.setRotationAngle(0);
+//        // enable rotation of the chart by touch
+//        temperature_pie_chart.setRotationEnabled(true);
+//        temperature_pie_chart.setHighlightPerTapEnabled(true);
+//        temperature_pie_chart.animateY(1400, Easing.EaseInOutQuad);
+//        Legend temperature_legend = temperature_pie_chart.getLegend();
+//        temperature_legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
+//        temperature_legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
+//        temperature_legend.setOrientation(Legend.LegendOrientation.VERTICAL);
+//        temperature_legend.setDrawInside(false);
+//        temperature_legend.setXEntrySpace(7f);
+//        temperature_legend.setYEntrySpace(0f);
+//        temperature_legend.setYOffset(0f);
+//
+//        // entry label styling
+//        temperature_pie_chart.setEntryLabelColor(Color.WHITE);
+//        temperature_pie_chart.setEntryLabelTextSize(12f);
+//
+//        //##### Heartrate Chart
+//
+//        heartrate_pie_chart = findViewById(R.id.heartrate_chart);
+//        heartrate_pie_chart.setUsePercentValues(true);
+//        heartrate_pie_chart.getDescription().setEnabled(false);
+//        heartrate_pie_chart.setExtraOffsets(5, 5, 5, 5);
+//        heartrate_pie_chart.setDragDecelerationFrictionCoef(0.95f);
+//        heartrate_pie_chart.setDrawHoleEnabled(true);
+//        heartrate_pie_chart.setHoleColor(Color.WHITE);
+//        heartrate_pie_chart.setTransparentCircleColor(Color.WHITE);
+//        heartrate_pie_chart.setTransparentCircleAlpha(110);
+//        heartrate_pie_chart.setHoleRadius(58f);
+//        heartrate_pie_chart.setTransparentCircleRadius(61f);
+//        heartrate_pie_chart.setDrawCenterText(true);
+//        heartrate_pie_chart.setRotationAngle(0);
+//        // enable rotation of the chart by touch
+//        heartrate_pie_chart.setRotationEnabled(true);
+//        heartrate_pie_chart.setHighlightPerTapEnabled(true);
+//        heartrate_pie_chart.animateY(1400, Easing.EaseInOutQuad);
+//        Legend heartrate_legend = heartrate_pie_chart.getLegend();
+//        heartrate_legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
+//        heartrate_legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
+//        heartrate_legend.setOrientation(Legend.LegendOrientation.VERTICAL);
+//        heartrate_legend.setDrawInside(false);
+//        heartrate_legend.setXEntrySpace(7f);
+//        heartrate_legend.setYEntrySpace(0f);
+//        heartrate_legend.setYOffset(0f);
+//
+//        // entry label styling
+//        heartrate_pie_chart.setEntryLabelColor(Color.BLACK);
+//        heartrate_pie_chart.setEntryLabelTextSize(12f);
+//
+//
+//        // Check if user is signed in (non-null) and update UI accordingly.
+//        currentUser = mAuth.getCurrentUser();
+//        if(currentUser == null){
+//            //TODO: Proceed to SignIn Menu
+////            startActivity(new Intent(getApplicationContext(),LoginActivity.class));
+//            // Choose authentication providers
+//            List<AuthUI.IdpConfig> providers = Arrays.asList(
+//                    new AuthUI.IdpConfig.EmailBuilder().enableEmailLinkSignIn()
+//                            .setActionCodeSettings(buildActionCodeSettings()).build(),
+//                    new AuthUI.IdpConfig.GoogleBuilder().build());
+//
+//
+//            startActivityForResult(
+//                    AuthUI.getInstance()
+//                            .createSignInIntentBuilder()
+//                            .setAvailableProviders(providers)
+//                            .build(),
+//                    RC_SIGN_IN);
+//
+//        }
+//        else {
+//            update_data();
+//
+//        }
 
     }
 
@@ -443,32 +451,32 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if(currentUser != null) {
-            info.setText("Hello " + currentUser.getDisplayName());
-
-            Log.d(TAG,"Got the current user : "+ currentUser.getDisplayName());
-        } else {
-            info.setText("PLease wait... " );  //           Add animation
-            currentUser = mAuth.getCurrentUser();
-            if(currentUser != null){
-                info.setText("Successfully Logged in");
-                info.setText("Hello " + currentUser.getDisplayName());
-            }
-        }
+//        if(currentUser != null) {
+//            info.setText("Hello " + currentUser.getDisplayName());
+//
+//            Log.d(TAG,"Got the current user : "+ currentUser.getDisplayName());
+//        } else {
+//            info.setText("PLease wait... " );  //           Add animation
+//            currentUser = mAuth.getCurrentUser();
+//            if(currentUser != null){
+//                info.setText("Successfully Logged in");
+//                info.setText("Hello " + currentUser.getDisplayName());
+//            }
+//        }
     }
 
 
     @Override
     protected void onStop() {
         super.onStop();
-        if(registration != null)                  //To be moved to onpause()
-            registration.remove();
-//        if(DocumentDataListeners != null)       //Might not be required.
-//            DocumentDataListeners.remove();
-        if(DeviceDataListeners != null)
-            DeviceDataListeners.remove();
-        if(ReadingListeners != null)
-            ReadingListeners.remove();
+//        if(registration != null)                  //To be moved to onpause()
+//            registration.remove();
+////        if(DocumentDataListeners != null)       //Might not be required.
+////            DocumentDataListeners.remove();
+//        if(DeviceDataListeners != null)
+//            DeviceDataListeners.remove();
+//        if(ReadingListeners != null)
+//            ReadingListeners.remove();
     }
 
     @Override
