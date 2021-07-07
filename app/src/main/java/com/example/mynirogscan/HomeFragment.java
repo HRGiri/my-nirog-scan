@@ -9,6 +9,8 @@ import androidx.annotation.Nullable;
 import androidx.core.util.Pair;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
 import android.util.Log;
@@ -362,7 +364,7 @@ public class HomeFragment extends Fragment {
                 all_readings.put(int_key,curr_device_readings.get(key));
             }
         }
-        all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings).descendingMap();
+        all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings);
         Log.d(TAG,"sorted list "+all_readings_sorted.keySet());
         update_top_table();
         populate_reading_history_chart();
@@ -529,40 +531,15 @@ public class HomeFragment extends Fragment {
     }
 
     private void add_devices_listeners(){
-        DocumentReference user_document_ref = firestore.collection("users")
-                .document(currentUser.getUid());
-        DeviceDataListeners = user_document_ref.collection("devices")
-                .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable QuerySnapshot snapshots,
-                                        @Nullable FirebaseFirestoreException e) {
-                        if (e != null) {
-                            Log.w(TAG, "listen:error", e);
-                            return;
-                        }
-                        DeviceData = snapshots.getDocuments();
-                    }
-                });
+        GlobalData globalData = new ViewModelProvider(this).get(GlobalData.class);
+//        globalData.set_firebase_listeners(firestore,currentUser);
+        globalData.getGlobalDeviceData(firestore,currentUser).observe(this,  DeviceData -> {
+            Log.d(TAG,"okay siomehting"+DeviceData.toString());
+        });
+//        globalData.getGlobalDeviceReadings().observe(this, DeviceReadings -> {
+//            extract_data_from_document();
+//        });
 
-        ReadingListeners = user_document_ref.collection("Readings")
-                .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable QuerySnapshot snapshots,
-                                        @Nullable FirebaseFirestoreException e) {
-                        if (e != null) {
-                            Log.w(TAG, "listen:error", e);
-                            return;
-                        }
-                        if(snapshots!=null) {
-                            DeviceReadings = snapshots.getDocuments();
-                            extract_data_from_document();
-//                            addDevice();
-                        }
-                        else {
-                            Log.d(TAG,"documents not found");
-                        }
-                    }
-                });
     }
 
     private void launchDatePicker() {
