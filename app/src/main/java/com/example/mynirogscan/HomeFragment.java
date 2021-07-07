@@ -6,12 +6,16 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.util.Pair;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.navigation.Navigation;
 
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.firebase.ui.auth.AuthUI;
@@ -41,6 +45,8 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.datepicker.MaterialDatePicker;
+import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -69,6 +75,7 @@ import java.util.TimeZone;
 import java.util.TreeMap;
 
 import static android.app.Activity.RESULT_OK;
+import static com.example.mynirogscan.Constants.CREATED_FIELD_NAME;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -89,6 +96,7 @@ public class HomeFragment extends Fragment {
     private TextView oxygen_value;
     private TextView heartrate_value;
     private TextView temperature_value;
+    private Button generateCSVButton;
     private LineChart oxygen_reading_chart;
     private LineChart temperature_reading_chart;
     private LineChart heartrate_reading_chart;
@@ -139,7 +147,7 @@ public class HomeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.activity_main, container, false);
+        return inflater.inflate(R.layout.fragment_main, container, false);
     }
 
     @Override
@@ -154,6 +162,14 @@ public class HomeFragment extends Fragment {
 //        emulatorSettings();
 
         info = view.findViewById(R.id.tv_main);
+
+        generateCSVButton = view.findViewById(R.id.generate_csv_btn);
+        generateCSVButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                launchDatePicker();
+            }
+        });
 
         total_visits_value = view.findViewById(R.id.total_visitors_card);
         oxygen_value = view.findViewById(R.id.oxygen_card);
@@ -265,9 +281,13 @@ public class HomeFragment extends Fragment {
 
                                     } else {
                                         Log.d(TAG, "Google sign In Lets register you");
-//                                        Intent intent = new Intent(MainActivity.this,
+//                                        Intent intent = new Intent(getContext(),
 //                                                SignUpActivity.class);
 //                                        startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
+                                        HomeFragmentDirections.ActionHomeFragmentToSignUpFragment action =
+                                                HomeFragmentDirections
+                                                        .actionHomeFragmentToSignUpFragment();
+                                        Navigation.findNavController(getActivity(),R.id.main_activity_nav_host).navigate(action);
                                     }
                                 } else  {
                                     Log.d(TAG,"Error getting Data : ", task.getException());
@@ -535,6 +555,7 @@ public class HomeFragment extends Fragment {
                         if(snapshots!=null) {
                             DeviceReadings = snapshots.getDocuments();
                             extract_data_from_document();
+//                            addDevice();
                         }
                         else {
                             Log.d(TAG,"documents not found");
@@ -543,6 +564,46 @@ public class HomeFragment extends Fragment {
                 });
     }
 
+    private void launchDatePicker() {
+        MaterialDatePicker<Pair<Long, Long>> dateRangePicker = MaterialDatePicker.Builder.dateRangePicker()
+                .setTitleText("Select dates")
+                .setSelection(new Pair<>(
+                                MaterialDatePicker.thisMonthInUtcMilliseconds(),
+                                MaterialDatePicker.todayInUtcMilliseconds()
+                        )
+                )
+                .build();
+        dateRangePicker.addOnPositiveButtonClickListener((MaterialPickerOnPositiveButtonClickListener<Pair<Long,Long>>) selection -> {
+            Log.d(TAG,selection.toString());
+
+            // Check if the timestamp exists in current document
+            boolean toFetch = false;
+            for(DocumentSnapshot curr_doc : DeviceReadings){
+                Long created = Long.decode(String.valueOf(curr_doc.get(CREATED_FIELD_NAME)));
+                if (created > selection.first){
+                    toFetch = true;
+                }
+            }
+            if(toFetch){
+                // Fetch readings matching the time period
+                getDateRangeReadings();
+            }
+            generateCSV();
+
+        });
+        dateRangePicker.show(getFragmentManager(),DATE_PICKER_TAG);
+    }
+
+    private void getDateRangeReadings() {
+        DocumentReference user_document_ref = firestore.collection("users")
+                .document(currentUser.getUid());
+//        user_document_ref.collection(READINGS_DOCUMENT_NAME)
+//                .whereGreaterThan(CREATED_FIELD_NAME,)
+    }
+
+    private void generateCSV() {
+        // TODO: Implement csv generation
+    }
     /**
      * Method to add a new device
      */
@@ -551,6 +612,14 @@ public class HomeFragment extends Fragment {
         Log.d(TAG,deviceId);
         String fcmToken = DocumentData.get("FCMToken").toString();
         Log.d(TAG,fcmToken.length() + "");
+//        FragmentManager fragmentManager = getParentFragmentManager();
+//        Bundle bundle = new Bundle();
+//        bundle.putString(FCM_TOKEN_EXTRA,fcmToken);
+//        bundle.putString(DEVICE_ID_EXTRA,deviceId);
+//        fragmentManager.beginTransaction()
+//                .setReorderingAllowed(true)
+//                .add(R.id.fragmentContainerView2, AddDeviceFragment.class, bundle)
+//                .commit();
 //        Intent intent = new Intent(MainActivity.this,AddDeviceActivity.class);
 //        intent.putExtra(FCM_TOKEN_EXTRA,fcmToken);
 //        intent.putExtra(DEVICE_ID_EXTRA,deviceId);

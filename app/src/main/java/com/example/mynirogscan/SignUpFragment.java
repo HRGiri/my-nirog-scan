@@ -39,6 +39,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -104,11 +105,13 @@ public class SignUpFragment extends Fragment {
                 new AuthUI.IdpConfig.GoogleBuilder().build());
 
         // TODO: Create and launch sign-in intent
+        boolean isDeeplink = SignUpFragmentArgs.fromBundle(getArguments()).getIsDeepLink();
+        if(isDeeplink){
 //        if (AuthUI.canHandleIntent(getIntent())) {
-//            Log.d(TAG,"Can Handle Intent");
-//            constraintLayout.setVisibility(View.INVISIBLE);
-////            verifyEmailSignIn(providers);
-//        }
+            Log.d(TAG,"Can Handle Intent");
+            constraintLayout.setVisibility(View.INVISIBLE);
+            verifyEmailSignIn(providers);
+        }
 
 
         mAuth = FirebaseAuth.getInstance();
@@ -149,6 +152,11 @@ public class SignUpFragment extends Fragment {
                 createFCMtoken();
 
                 //TODO: Jump to Main Page- Dashboard
+//                HomeFragmentDirections.ActionHomeFragmentToSignUpFragment action =
+//                        HomeFragmentDirections
+//                                .actionHomeFragmentToSignUpFragment();
+
+                Navigation.findNavController(getActivity(),R.id.main_activity_nav_host).navigate(SignUpFragmentDirections.actionSignUpFragmentToHomeFragment());
 //                Intent intent = new Intent(SignUpActivity.this,
 //                        MainActivity.class);
 //                startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
@@ -158,6 +166,43 @@ public class SignUpFragment extends Fragment {
 
     }
 
+
+    private void verifyEmailSignIn(List<AuthUI.IdpConfig> providers) {
+        FirebaseDynamicLinks.getInstance()
+                .getDynamicLink(getActivity().getIntent())
+                .addOnSuccessListener(getActivity(), new OnSuccessListener<PendingDynamicLinkData>() {
+                    @Override
+                    public void onSuccess(PendingDynamicLinkData pendingDynamicLinkData) {
+                        // Get deep link from result (may be null if no link is found)
+                        Uri deepLink = null;
+                        if (pendingDynamicLinkData != null) {
+                            deepLink = pendingDynamicLinkData.getLink();
+                        }
+
+                        Log.d(TAG,deepLink.toString());
+                        // Handle the deep link. For example, open the linked
+                        // content, or apply promotional credit to the user's
+                        // account.
+                        // ...
+                        if (deepLink != null) {
+                            startActivityForResult(
+                                    AuthUI.getInstance()
+                                            .createSignInIntentBuilder()
+                                            .setEmailLink(deepLink.toString())
+                                            .setAvailableProviders(providers)
+                                            .build(),
+                                    RC_SIGN_IN);
+                        }
+                    }
+                })
+                .addOnFailureListener(getActivity(), new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "getDynamicLink:onFailure", e);
+                    }
+                });
+
+    }
 
 
     @Override
@@ -196,7 +241,7 @@ public class SignUpFragment extends Fragment {
                                 }
                             }
                         });
-                Log.d(TAG,"THe user UID is "+ currentUser.getUid());
+                Log.d(TAG,"The user UID is "+ currentUser.getUid());
 
             } else {
 

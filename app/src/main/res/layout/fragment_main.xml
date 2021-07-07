@@ -4,17 +4,29 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:visibility="visible"
-    tools:context=".MainActivity">
+    android:visibility="visible">
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragmentContainerView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:visibility="visible"
+        tools:layout_editor_absoluteX="0dp"
+        tools:layout_editor_absoluteY="206dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" >
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/tv_main"
@@ -131,8 +143,8 @@
                 android:id="@+id/horizontalScrollView"
                 android:layout_width="match_parent"
                 android:layout_height="189dp"
-                android:layout_marginTop="40dp"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="8dp"
+                android:layout_marginTop="40dp">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -168,17 +180,12 @@
                 </LinearLayout>
             </HorizontalScrollView>
 
-            <com.github.mikephil.charting.charts.BarChart
-                android:id="@+id/visit_chart"
-                android:layout_width="match_parent"
-                android:layout_height="224dp" />
-
             <HorizontalScrollView
                 android:id="@+id/horizontalScrollView2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="96dp">
+                android:layout_marginBottom="96dp"
+                android:layout_marginTop="24dp">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -189,34 +196,47 @@
                         android:id="@+id/oxygen_reading_history_chart"
                         android:layout_width="410dp"
                         android:layout_height="240dp"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="25dp" />
+                        android:layout_marginBottom="25dp"
+                        android:layout_marginTop="16dp" />
 
 
                     <com.github.mikephil.charting.charts.LineChart
                         android:id="@+id/temperature_reading_history_chart"
                         android:layout_width="410dp"
                         android:layout_height="240dp"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="25dp" />
+                        android:layout_marginBottom="25dp"
+                        android:layout_marginTop="16dp" />
 
                     <com.github.mikephil.charting.charts.LineChart
                         android:id="@+id/heartrate_reading_history_chart"
                         android:layout_width="410dp"
                         android:layout_height="240dp"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="25dp" />
+                        android:layout_marginBottom="25dp"
+                        android:layout_marginTop="16dp" />
                 </LinearLayout>
 
             </HorizontalScrollView>
 
-            <Button
-                android:id="@+id/generate_csv_btn"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Button"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent" />
+            <com.github.mikephil.charting.charts.BarChart
+                android:id="@+id/visit_chart"
+                android:layout_width="match_parent"
+                android:layout_height="224dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/generate_csv_btn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="Button"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>

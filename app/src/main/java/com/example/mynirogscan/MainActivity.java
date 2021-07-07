@@ -8,11 +8,13 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.core.util.Pair;
+import androidx.navigation.ui.NavigationUI;
 
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
 import android.widget.TextView;
 
 import com.firebase.ui.auth.AuthUI;
@@ -44,6 +46,7 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
 
@@ -90,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int RC_SIGN_IN = 1;
     private static final String DATE_PICKER_TAG = "com.example.mynirogscan.GenerateReportDatePicker";
     public static final String DEVICE_ID_EXTRA = "com.example.mynirogscan.DEVICE_ID";
+    private NavController navController;
     private String token;
     private TextView info;
     private TextView total_visits_value;
@@ -135,13 +139,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.home_screen);
 //        setContentView(R.layout.home_screen);
 
-        if (savedInstanceState == null) {
-            HomeFragment fragment = new HomeFragment();
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .add(R.id.home_fragment, fragment)
-                    .commit();
-        }
+        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.main_activity_nav_host);
+
+        navController = navHostFragment.getNavController();
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        NavigationUI.setupWithNavController(bottomNav, navController);
+
+//        if (savedInstanceState == null) {
+//            HomeFragment fragment = new HomeFragment();
+//            getSupportFragmentManager()
+//                    .beginTransaction()
+//                    .add(R.id.home_fragment, fragment)
+//                    .commit();
+//        }
 
         // From another Fragment or Activity where you wish to show this
 // PurchaseConfirmationDialogFragment.
@@ -405,6 +415,23 @@ public class MainActivity extends AppCompatActivity {
 //
 //        }
 
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Log.d("Menu",item.toString());
+        return NavigationUI.onNavDestinationSelected(item, navController)
+                || super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        return navController.navigateUp();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
     }
 
     private void launchDatePicker() {
