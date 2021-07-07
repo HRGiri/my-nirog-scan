@@ -1,9 +1,11 @@
 package com.example.mynirogscan;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -40,5 +42,12 @@ public class DeviceFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        String deviceId = DeviceFragmentArgs.fromBundle(getArguments()).getDEVICEID();
+        Log.d("Device Fragment",String.valueOf(deviceId==null) + deviceId);
+//        Toast.makeText(getContext(),
+//                deviceId,
+//                Toast.LENGTH_LONG)
+//                .show();
     }
 }

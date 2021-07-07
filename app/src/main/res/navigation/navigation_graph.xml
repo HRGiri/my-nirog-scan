@@ -51,5 +51,11 @@
         android:id="@+id/devicesScreen"
         android:name="com.example.mynirogscan.DevicesScreen"
         android:label="fragment_devices__screen"
-        tools:layout="@layout/fragment_devices_screen" />
+        tools:layout="@layout/fragment_devices_screen" >
+        <action
+            android:id="@+id/action_devicesScreen_to_device_nav_graph"
+            app:destination="@id/device_nav_graph"
+            app:launchSingleTop="true" />
+    </fragment>
+    <include app:graph="@navigation/device_nav_graph" />
 </navigation>

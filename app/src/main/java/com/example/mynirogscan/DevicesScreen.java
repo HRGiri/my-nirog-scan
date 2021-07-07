@@ -5,6 +5,9 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavDirections;
+import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -98,10 +101,17 @@ public class DevicesScreen extends Fragment implements AdapterView.OnItemSelecte
 
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-        Toast.makeText(getContext(),
-                devices.get(i),
-                Toast.LENGTH_LONG)
-                .show();
+        Bundle args = new Bundle();
+        args.putString("DEVICE_ID",devices.get(i));
+//        Navigation.findNavController(getActivity(),R.id.devices_nav_host).setGraph(R.navigation.device_nav_graph,args);
+//        Navigation
+//                .findNavController(getActivity(),R.id.main_activity_nav_host)
+//                .navigate(DevicesScreenDirections.actionDevicesScreenToDeviceNavGraph());
+        NavHostFragment finalHost = NavHostFragment.create(R.navigation.device_nav_graph,args);
+        getFragmentManager().beginTransaction()
+                .replace(R.id.devices_nav_host, finalHost)
+                .setPrimaryNavigationFragment(finalHost) // equivalent to app:defaultNavHost="true"
+                .commit();
     }
 
     @Override

@@ -287,6 +287,7 @@ public class HomeFragment extends Fragment {
                                         HomeFragmentDirections.ActionHomeFragmentToSignUpFragment action =
                                                 HomeFragmentDirections
                                                         .actionHomeFragmentToSignUpFragment();
+                                        action.setIsDeepLink(false);
                                         Navigation.findNavController(getActivity(),R.id.main_activity_nav_host).navigate(action);
                                     }
                                 } else  {
