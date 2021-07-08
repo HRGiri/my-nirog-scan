@@ -532,13 +532,13 @@ public class HomeFragment extends Fragment {
 
     private void add_devices_listeners(){
         GlobalData globalData = new ViewModelProvider(this).get(GlobalData.class);
-//        globalData.set_firebase_listeners(firestore,currentUser);
-        globalData.getGlobalDeviceData(firestore,currentUser).observe(this,  DeviceData -> {
-            Log.d(TAG,"okay siomehting"+DeviceData.toString());
+        globalData.getGlobalDeviceData(firestore,currentUser).observe(this,  viewDeviceData -> {
+            DeviceData = viewDeviceData;
         });
-//        globalData.getGlobalDeviceReadings().observe(this, DeviceReadings -> {
-//            extract_data_from_document();
-//        });
+        globalData.getGlobalDeviceReadings(firestore,currentUser).observe(this, viewDeviceReadings -> {
+            DeviceReadings = viewDeviceReadings;
+            extract_data_from_document();
+        });
 
     }
 

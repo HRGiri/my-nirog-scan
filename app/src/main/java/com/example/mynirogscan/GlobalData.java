@@ -34,23 +34,22 @@ public class GlobalData extends ViewModel {
     private MutableLiveData<List<DocumentSnapshot>> GlobalDeviceReadings = new MutableLiveData<List<DocumentSnapshot>>();
 
     public LiveData<List<DocumentSnapshot>> getGlobalDeviceData(FirebaseFirestore firestore, FirebaseUser currentUser){
-        if(GlobalDeviceData == null){
-            set_firebase_listeners(firestore,currentUser);
+        if(DeviceData == null){
 
+            set_deviceData_listeners(firestore,currentUser);
         }
-
         return GlobalDeviceData;
     }
 
-    public LiveData<List<DocumentSnapshot>> getGlobalDeviceReadings(){
-        if(GlobalDeviceReadings == null){
-            GlobalDeviceReadings.setValue(DeviceReadings);
+    public LiveData<List<DocumentSnapshot>> getGlobalDeviceReadings(FirebaseFirestore firestore, FirebaseUser currentUser){
+        if(DeviceReadings == null){
+            set_deviceReadings_listeners(firestore,currentUser);
         }
         return GlobalDeviceReadings;
     }
 
 
-    public void set_firebase_listeners(FirebaseFirestore firestore, FirebaseUser currentUser){
+    private void set_deviceData_listeners(FirebaseFirestore firestore, FirebaseUser currentUser) {
         DocumentReference user_document_ref = firestore.collection("users")
                 .document(currentUser.getUid());
         DeviceDataListeners = user_document_ref.collection("devices")
@@ -66,7 +65,10 @@ public class GlobalData extends ViewModel {
                         GlobalDeviceData.setValue(DeviceData);
                     }
                 });
-
+    }
+    private void set_deviceReadings_listeners(FirebaseFirestore firestore, FirebaseUser currentUser){
+        DocumentReference user_document_ref = firestore.collection("users")
+                .document(currentUser.getUid());
         ReadingListeners = user_document_ref.collection("Readings")
                 .addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
@@ -78,6 +80,7 @@ public class GlobalData extends ViewModel {
                         }
                         if(snapshots!=null) {
                             DeviceReadings = snapshots.getDocuments();
+                            GlobalDeviceReadings.setValue(DeviceReadings);
                         }
                         else {
                             Log.d(TAG,"documents not found");
