@@ -12,6 +12,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
+import androidx.viewpager2.widget.ViewPager2;
 
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -121,6 +122,9 @@ public class HomeFragment extends Fragment {
     Float counter;   //Revisit after testing
     int total_reads;
 
+    private PieChartStateAdapter pieChartAdapter;
+    private ViewPager2 viewPager;
+
 
     Charts chart = new Charts();
     private GlobalData globalData;
@@ -164,6 +168,7 @@ public class HomeFragment extends Fragment {
 //        firestore.enableNetwork();
 //        emulatorSettings();
 
+
         info = view.findViewById(R.id.tv_main);
 
         generateCSVButton = view.findViewById(R.id.generate_csv_btn);
@@ -193,7 +198,10 @@ public class HomeFragment extends Fragment {
         chart.setupLineChart(heartrate_reading_chart,Color.TRANSPARENT,11f,android.R.color.holo_orange_light,180f,20f);
 
 
-
+        pieChartAdapter = new PieChartStateAdapter(this);
+        viewPager = view.findViewById(R.id.pieChartPager);
+        viewPager.setAdapter(pieChartAdapter);
+        viewPager.setOffscreenPageLimit(2);
         //############## Pie Chart settings
         company_health_chart = view.findViewById(R.id.company_health_chart);
         oxygen_pie_chart = view.findViewById(R.id.oxygen_chart);
