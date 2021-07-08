@@ -10,8 +10,22 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.google.firebase.firestore.DocumentSnapshot;
+
+import java.util.List;
 
 public class DeviceFragment extends Fragment {
+
+    private GlobalData globalData;
+    private List<DocumentSnapshot> AllDeviceData;
+    private DocumentSnapshot DeviceData;
+    private List<DocumentSnapshot> AllDeviceReadings;
+    private DocumentSnapshot DeviceReadings;
+
+    String TAG = "DeviceFragment";
+
     public DeviceFragment() {
         // Required empty public constructor
     }
@@ -44,10 +58,31 @@ public class DeviceFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         String deviceId = DeviceFragmentArgs.fromBundle(getArguments()).getDEVICEID();
-        Log.d("Device Fragment",String.valueOf(deviceId==null) + deviceId);
-//        Toast.makeText(getContext(),
-//                deviceId,
-//                Toast.LENGTH_LONG)
-//                .show();
+        globalData = new ViewModelProvider(requireActivity()).get(GlobalData.class);
+        globalData.getIsInit().observe(requireActivity(),isInit->{
+            if(isInit){
+
+                globalData.getGlobalDeviceData().observe(requireActivity(),  viewDeviceData -> {
+                    AllDeviceData = viewDeviceData;
+                    for(DocumentSnapshot DeviceDataIter: AllDeviceData){
+                        if(deviceId.equals(DeviceDataIter.getId())){
+                            DeviceData = DeviceDataIter;
+                        }
+                    }
+
+                });
+                globalData.getGlobalDeviceReadings().observe(requireActivity(), viewDeviceReadings -> {
+                    AllDeviceReadings = viewDeviceReadings;
+                    for(DocumentSnapshot DeviceReadingsIter: AllDeviceReadings){
+                        if(deviceId.equals(DeviceReadingsIter.get("uuid"))){
+                            DeviceReadings = DeviceReadingsIter;
+                            Log.d(TAG,"Device readings"+DeviceReadings.toString());
+                        }
+                    }
+                });
+            }
+        });
     }
+
+
 }

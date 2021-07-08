@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
@@ -20,9 +21,12 @@ import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.google.firebase.firestore.DocumentSnapshot;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -36,15 +40,20 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
 
+    private String TAG = "Device Screen";
+
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
     private Spinner dropDown;
 
+    ArrayList<Map<String,String>> device_list;
     ArrayList<String> devices = new ArrayList<>();
     String[] deviceArray = {"Device 1","Device 2","Device 3"};
     private Button addDeviceButton;
     private Button configureButton;
+
+    DocumentSnapshot UserData;
 
 
     public DevicesScreen() {
@@ -117,7 +126,16 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
         dropDown.setOnItemSelectedListener(this);
 
         // Create the instance of ArrayAdapter
-        devices.addAll(Arrays.asList(deviceArray));
+        GlobalData globalData = new ViewModelProvider(requireActivity()).get(GlobalData.class);
+        globalData.getGlobalUsersData().observe(requireActivity(), globalUserData->{
+            UserData = globalUserData;
+        });
+        device_list = (ArrayList<Map<String, String>>) UserData.get("device_list");
+
+        for(Map<String,String> device : device_list){
+            devices.add(device.get("name"));
+        }
+
         ArrayAdapter adapter = new ArrayAdapter(getContext(),
                 android.R.layout.simple_spinner_item,
                 devices);
@@ -131,7 +149,7 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
         Bundle args = new Bundle();
-        args.putString("DEVICE_ID",devices.get(i));
+        args.putString("DEVICE_ID", device_list.get(i).get("uuid"));
 //        Navigation.findNavController(getActivity(),R.id.devices_nav_host).setGraph(R.navigation.device_nav_graph,args);
 //        Navigation
 //                .findNavController(getActivity(),R.id.main_activity_nav_host)

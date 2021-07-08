@@ -1,6 +1,7 @@
 package com.example.mynirogscan;
 
 import android.graphics.Color;
+import android.util.Log;
 
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.BarChart;
@@ -25,6 +26,9 @@ import com.github.mikephil.charting.utils.ColorTemplate;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -53,16 +57,16 @@ public class Charts {
     public void extract_reading_history(Map<Number,Map<String,Number>> readings, List<Entry> oxygen_entries ,List<Entry> temperature_entries ,List<Entry> heartrate_entries){
 
         timestamp_string = new HashMap<Float, String>();
-        float counter = 0f;
-        Set<Number> timestamp_keyset = readings.keySet();
-        Number time_diff =  (long)timestamp_keyset.toArray()[0] - (long)timestamp_keyset.toArray()[49];
+        Object[] timestamp_keyset = readings.keySet().toArray();
+        Number time_diff =  (long)timestamp_keyset[0] - (long)timestamp_keyset[49];
         SimpleDateFormat dateformat;
         if((long)time_diff < (long)(3600*24*1000)){
             dateformat = new SimpleDateFormat("HH:mm");
         }else{
             dateformat = new SimpleDateFormat("dd-MM HH:mm");
         }
-        for (Number timestamp: timestamp_keyset) {
+        for (float counter = 0f;counter < 50f;counter++) {
+            Number timestamp = (Number)timestamp_keyset[49-(int)counter];
             Date date = new Date((long)timestamp);
             dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
             String xaxis_timestamp = dateformat.format(date);
@@ -71,11 +75,8 @@ public class Charts {
             oxygen_entries.add(new Entry((float)counter, readings.get(timestamp).get("oxygen").floatValue()));
             temperature_entries.add(new Entry((float)counter, readings.get(timestamp).get("temperature").floatValue()));
             heartrate_entries.add(new Entry((float)counter, readings.get(timestamp).get("heartrate").floatValue()));
-            counter = counter + 1f;
-            if(counter > 50f){
-                break;
-            }
         }
+
     }
 
     public int check_threshold(float o2val,float tempval, float hrval){
