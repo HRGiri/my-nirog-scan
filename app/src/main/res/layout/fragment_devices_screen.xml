@@ -7,14 +7,45 @@
     android:orientation="vertical"
     tools:context=".DevicesScreen" >
 
-    <Spinner
-        android:id="@+id/device_drop_down"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:layout_marginLeft="32dp"
-        android:layout_marginRight="32dp"
-        android:layout_marginTop="8dp" />
+        android:background="@color/dark_blue"
+        android:orientation="horizontal">
+
+        <Spinner
+            android:id="@+id/device_drop_down"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_weight="0.2"
+            android:spinnerMode="dialog" />
+
+        <Button
+            android:id="@+id/device_settings_btn"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="8dp"
+            android:layout_marginRight="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_weight="0.8"
+            android:foreground="@android:drawable/ic_menu_preferences"
+            android:padding="16dp" />
+
+        <Button
+            android:id="@+id/add_device_btn"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="8dp"
+            android:layout_marginRight="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_weight="0.8"
+            android:foreground="@android:drawable/ic_input_add" />
+
+    </LinearLayout>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/devices_nav_host"

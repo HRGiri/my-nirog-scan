@@ -4,16 +4,19 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -25,7 +28,7 @@ import java.util.Arrays;
  * Use the {@link DevicesScreen#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class DevicesScreen extends Fragment implements AdapterView.OnItemSelectedListener {
+public class DevicesScreen extends Fragment implements SettingsFragment.SettingsDialogListener, AdapterView.OnItemSelectedListener {
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -39,6 +42,8 @@ public class DevicesScreen extends Fragment implements AdapterView.OnItemSelecte
 
     ArrayList<String> devices = new ArrayList<>();
     String[] deviceArray = {"Device 1","Device 2","Device 3"};
+    private Button addDeviceButton;
+    private Button configureButton;
 
 
     public DevicesScreen() {
@@ -83,6 +88,29 @@ public class DevicesScreen extends Fragment implements AdapterView.OnItemSelecte
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        addDeviceButton = view.findViewById(R.id.add_device_btn);
+
+        addDeviceButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                DevicesScreenDirections.ActionDevicesScreenToAddDeviceFragment action = DevicesScreenDirections.actionDevicesScreenToAddDeviceFragment();
+                //TODO: Set arguments
+                action.setDEVICEID(null);
+                action.setFCMToken(null);
+                Navigation.findNavController(getActivity(),R.id.main_activity_nav_host)
+                        .navigate(action);
+            }
+        });
+
+        configureButton = view.findViewById(R.id.device_settings_btn);
+        configureButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                DialogFragment newFragment = new SettingsFragment(DevicesScreen.this);
+                newFragment.show(getParentFragmentManager(), SettingsFragment.TAG);
+            }
+        });
+
         dropDown = view.findViewById(R.id.device_drop_down);
         // Specify the layout to use when the list of choices appears
         dropDown.setOnItemSelectedListener(this);
@@ -117,5 +145,11 @@ public class DevicesScreen extends Fragment implements AdapterView.OnItemSelecte
     @Override
     public void onNothingSelected(AdapterView<?> adapterView) {
 
+    }
+
+    @Override
+    public void onSubmit(DialogFragment dialog) {
+        SettingsFragment fragment = (SettingsFragment)dialog;
+        Log.d("Settings",fragment.etWifiPass.getText().toString());
     }
 }

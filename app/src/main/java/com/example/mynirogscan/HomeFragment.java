@@ -592,7 +592,7 @@ public class HomeFragment extends Fragment {
             generateCSV();
 
         });
-        dateRangePicker.show(getFragmentManager(),DATE_PICKER_TAG);
+        dateRangePicker.show(getParentFragmentManager(),DATE_PICKER_TAG);
     }
 
     private void getDateRangeReadings() {

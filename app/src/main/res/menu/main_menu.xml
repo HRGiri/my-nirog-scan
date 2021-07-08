@@ -2,10 +2,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/addDeviceFragment"
-        android:title="Add Device" />
-    <item
-        android:id="@+id/home_fragment"
+        android:id="@+id/homeFragment"
         android:title="@string/home" />
     <item
         android:id="@+id/devicesScreen"
