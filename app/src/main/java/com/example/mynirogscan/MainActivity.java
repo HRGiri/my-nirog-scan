@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
 import androidx.navigation.Navigation;
@@ -616,12 +617,12 @@ public class MainActivity extends AppCompatActivity {
                     all_readings.put(int_key,curr_device_readings.get(key));
                 }
         }
-         all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings).descendingMap();
-        Log.d(TAG,"sorted list "+all_readings_sorted.keySet());
+         all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings);
+        Log.d(TAG,"bhakk bsdk :"+all_readings_sorted.toString());
         update_top_table();
-        populate_reading_history_chart();
-        populate_company_health_chart();
-        populate_daily_visit_chart();
+//        populate_reading_history_chart();
+//        populate_company_health_chart();
+//        populate_daily_visit_chart();
     }
 
 
@@ -1041,39 +1042,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void add_devices_listeners(){
-        DocumentReference user_document_ref = firestore.collection("users")
-                .document(currentUser.getUid());
-        DeviceDataListeners = user_document_ref.collection("devices")
-                .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable QuerySnapshot snapshots,
-                                        @Nullable FirebaseFirestoreException e) {
-                        if (e != null) {
-                            Log.w(TAG, "listen:error", e);
-                            return;
-                        }
-                        DeviceData = snapshots.getDocuments();
-                    }
-                });
+//        GlobalData globalData = new ViewModelProvider(this).get(GlobalData.class);
+//        globalData.set_firebase_listeners();
+//        DeviceReadings = globalData.getGlobalDeviceReadings();
+//        DeviceData = globalData.getGlobalDeviceData();
+//        extract_data_from_document();
 
-        ReadingListeners = user_document_ref.collection("Readings")
-                .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable QuerySnapshot snapshots,
-                                        @Nullable FirebaseFirestoreException e) {
-                        if (e != null) {
-                            Log.w(TAG, "listen:error", e);
-                            return;
-                        }
-                        if(snapshots!=null) {
-                            DeviceReadings = snapshots.getDocuments();
-                            extract_data_from_document();
-                        }
-                        else {
-                        Log.d(TAG,"documents not found");
-                        }
-                    }
-                });
     }
 
     /**
