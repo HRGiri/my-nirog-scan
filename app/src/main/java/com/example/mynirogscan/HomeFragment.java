@@ -123,6 +123,7 @@ public class HomeFragment extends Fragment {
 
 
     Charts chart = new Charts();
+    private GlobalData globalData;
 
 
     public HomeFragment() {
@@ -159,8 +160,8 @@ public class HomeFragment extends Fragment {
         mAuth = FirebaseAuth.getInstance();
 //        mAuth.useEmulator("10.0.2.2", 9099);
 
-        firestore = FirebaseFirestore.getInstance();
-        firestore.enableNetwork();
+//        firestore = FirebaseFirestore.getInstance();
+//        firestore.enableNetwork();
 //        emulatorSettings();
 
         info = view.findViewById(R.id.tv_main);
@@ -227,8 +228,29 @@ public class HomeFragment extends Fragment {
 
         }
         else {
-            update_data();
-
+//            update_data();
+            globalData = new ViewModelProvider(requireActivity()).get(GlobalData.class);
+            globalData.init();
+            globalData.getIsInit().observe(requireActivity(),isInit->{
+                if(isInit){
+                    globalData.getGlobalUsersData().observe(requireActivity(),usersData->{
+                        DocumentData = usersData;
+                    });
+                    globalData.getGlobalDeviceData().observe(requireActivity(),  viewDeviceData -> {
+                        DeviceData = viewDeviceData;
+                    });
+                    globalData.getGlobalDeviceReadings().observe(requireActivity(), viewDeviceReadings -> {
+                        DeviceReadings = viewDeviceReadings;
+                    });
+                    globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
+                        all_readings_sorted = sortedReadings;
+                        update_top_table();
+                        populate_reading_history_chart();
+                        populate_company_health_chart();
+                        populate_daily_visit_chart();
+                    });
+                }
+            });
         }
     }
 
@@ -252,14 +274,15 @@ public class HomeFragment extends Fragment {
     @Override
     public void onStop() {
         super.onStop();
-        if(registration != null)                  //To be moved to onpause()
-            registration.remove();
-//        if(DocumentDataListeners != null)       //Might not be required.
-//            DocumentDataListeners.remove();
-        if(DeviceDataListeners != null)
-            DeviceDataListeners.remove();
-        if(ReadingListeners != null)
-            ReadingListeners.remove();
+//        if(registration != null)                  //To be moved to onpause()
+//            registration.remove();
+////        if(DocumentDataListeners != null)       //Might not be required.
+////            DocumentDataListeners.remove();
+//        if(DeviceDataListeners != null)
+//            DeviceDataListeners.remove();
+//        if(ReadingListeners != null)
+//            ReadingListeners.remove();
+
     }
 
     @Override
@@ -350,56 +373,6 @@ public class HomeFragment extends Fragment {
     }
 
 
-    private void extract_data_from_document(){
-
-        Map<Number,Map<String,Number>> all_readings = new HashMap<Number,Map<String,Number>>();
-        for(DocumentSnapshot curr_doc : DeviceReadings){
-            Map<String,Map<String,Number>> curr_device_readings = (Map<String,Map<String,Number>>)curr_doc.get("previous_readings");
-            for(String key: curr_device_readings.keySet())
-            {
-                Long int_key = Long.parseLong(key);
-                if(all_readings.containsKey(int_key)){
-                    int_key = int_key + 1;
-                }
-                all_readings.put(int_key,curr_device_readings.get(key));
-            }
-        }
-        all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings);
-        Log.d(TAG,"sorted list "+all_readings_sorted.keySet());
-        update_top_table();
-        populate_reading_history_chart();
-        populate_company_health_chart();
-        populate_daily_visit_chart();
-    }
-
-
-    private void initShowLatestReading(DocumentReference docRef, String activeDeviceID){
-
-
-        registration = docRef.collection("devices").document(activeDeviceID)
-                .collection("readings")
-                .orderBy("time", Query.Direction.DESCENDING).limit(1)
-                .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable QuerySnapshot value,
-                                        @Nullable FirebaseFirestoreException e) {
-                        if (e != null) {
-                            Log.w(TAG, "Listen failed.", e);
-                            return;
-                        }
-
-                        for (QueryDocumentSnapshot doc : value) {
-                            getActivity().runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-
-                                }
-                            });
-                        }
-                    }
-                });
-
-    }
 
     public ActionCodeSettings buildActionCodeSettings() {
         // [START auth_build_action_code_settings]
@@ -435,37 +408,11 @@ public class HomeFragment extends Fragment {
     }
 
 
-    private void update_data(){
-        ArrayList<DocumentSnapshot> device_data;
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        DocumentDataListeners = firestore.collection("users").document(currentUser.getUid())
-                .addSnapshotListener(new EventListener<DocumentSnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable DocumentSnapshot snapshot,
-                                        @Nullable FirebaseFirestoreException e) {
-                        if (e != null) {
-                            Log.w(TAG, "Listen failed.", e);
-                            return;
-                        }
-                        if (snapshot != null && snapshot.exists()) {
-                            DocumentData = snapshot;
-                            Log.d(TAG,generateDeviceId());
-                        } else {
-                            Log.d(TAG, "No Data");
-                        }
-
-                        add_devices_listeners();
-
-                    }
-                });
-    }
-
-
     private void update_top_table(){
         /* Update Total Read, Last readings */
         //Assumption : all_reading_sorted contains only the latest readings
         total_reads = all_readings_sorted.size();
-        Number last_read_timestamp = (Number)all_readings_sorted.keySet().toArray()[total_reads-1];
+        Number last_read_timestamp = (Number)all_readings_sorted.keySet().toArray()[0];
         total_visits_value.setText(String.format("%d",total_reads));
         oxygen_value.setText(String.format("%.1f %%",all_readings_sorted.get(last_read_timestamp).get("oxygen").floatValue()));
         temperature_value.setText(String.format("%.1f \u00B0 F",all_readings_sorted.get(last_read_timestamp).get("temperature").floatValue()));
@@ -530,17 +477,6 @@ public class HomeFragment extends Fragment {
         bar_chart_obj.populateBarChart(daily_visit_chart,entries,"Daily Record");
     }
 
-    private void add_devices_listeners(){
-        GlobalData globalData = new ViewModelProvider(this).get(GlobalData.class);
-        globalData.getGlobalDeviceData(firestore,currentUser).observe(this,  viewDeviceData -> {
-            DeviceData = viewDeviceData;
-        });
-        globalData.getGlobalDeviceReadings(firestore,currentUser).observe(this, viewDeviceReadings -> {
-            DeviceReadings = viewDeviceReadings;
-            extract_data_from_document();
-        });
-
-    }
 
     private void launchDatePicker() {
         MaterialDatePicker<Pair<Long, Long>> dateRangePicker = MaterialDatePicker.Builder.dateRangePicker()
