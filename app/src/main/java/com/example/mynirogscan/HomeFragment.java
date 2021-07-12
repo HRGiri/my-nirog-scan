@@ -8,8 +8,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.util.Pair;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.viewpager2.widget.ViewPager2;
@@ -21,29 +19,15 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.example.mynirogscan.ChartStateAdapter.ChartType;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
-import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.charts.PieChart;
-import com.github.mikephil.charting.components.AxisBase;
-import com.github.mikephil.charting.components.Legend;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.components.YAxis;
-import com.github.mikephil.charting.data.BarData;
-import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
-import com.github.mikephil.charting.data.PieData;
-import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
-import com.github.mikephil.charting.formatter.PercentFormatter;
-import com.github.mikephil.charting.formatter.ValueFormatter;
-import com.github.mikephil.charting.utils.ColorTemplate;
-import com.github.mikephil.charting.utils.MPPointF;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -55,27 +39,17 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeMap;
 
 import static android.app.Activity.RESULT_OK;
 import static com.example.mynirogscan.Constants.CREATED_FIELD_NAME;
@@ -122,12 +96,14 @@ public class HomeFragment extends Fragment {
     Float counter;   //Revisit after testing
     int total_reads;
 
-    private PieChartStateAdapter pieChartAdapter;
-    private ViewPager2 viewPager;
+    private ChartStateAdapter pieChartAdapter;
+    private ViewPager2 pieViewPager;
 
 
     Charts chart = new Charts();
     private GlobalData globalData;
+    private ChartStateAdapter lineChartAdapter;
+    private ViewPager2 lineViewPager;
 
 
     public HomeFragment() {
@@ -168,14 +144,15 @@ public class HomeFragment extends Fragment {
 //        firestore.enableNetwork();
 //        emulatorSettings();
 
-
         info = view.findViewById(R.id.tv_main);
 
         generateCSVButton = view.findViewById(R.id.generate_csv_btn);
         generateCSVButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                launchDatePicker();
+//                launchDatePicker();
+                Navigation.findNavController(getActivity(),R.id.main_activity_nav_host)
+                        .navigate(HomeFragmentDirections.actionHomeFragmentToReadingsTableFragment());
             }
         });
 
@@ -187,31 +164,18 @@ public class HomeFragment extends Fragment {
         /*Daily visit chart*/
         daily_visit_chart = view.findViewById(R.id.visit_chart);
 
-        /*Reading Chart settings*/
-        oxygen_reading_chart = view.findViewById(R.id.oxygen_reading_history_chart);
-        temperature_reading_chart = view.findViewById(R.id.temperature_reading_history_chart);
-        heartrate_reading_chart = view.findViewById(R.id.heartrate_reading_history_chart);
-
-        //Reading History chart settings
-        chart.setupLineChart(oxygen_reading_chart,Color.TRANSPARENT,11f,android.R.color.primary_text_dark,100f,75f);
-        chart.setupLineChart(temperature_reading_chart,Color.TRANSPARENT,11f,android.R.color.holo_purple,110f,90f);
-        chart.setupLineChart(heartrate_reading_chart,Color.TRANSPARENT,11f,android.R.color.holo_orange_light,180f,20f);
-
-
-        pieChartAdapter = new PieChartStateAdapter(this);
-        viewPager = view.findViewById(R.id.pieChartPager);
-        viewPager.setAdapter(pieChartAdapter);
-        viewPager.setOffscreenPageLimit(2);
         //############## Pie Chart settings
-        company_health_chart = view.findViewById(R.id.company_health_chart);
-        oxygen_pie_chart = view.findViewById(R.id.oxygen_chart);
-        temperature_pie_chart = view.findViewById(R.id.temperature_chart);
-        heartrate_pie_chart = view.findViewById(R.id.heartrate_chart);
+        pieChartAdapter = new ChartStateAdapter(this, ChartType.PieChart);
+        pieViewPager = view.findViewById(R.id.pieChartPager);
+        pieViewPager.setAdapter(pieChartAdapter);
+        pieViewPager.setPageTransformer(new ZoomOutPageTransformer());
+//        viewPager.setOffscreenPageLimit(3);
 
-        chart.setupPieChart(company_health_chart, android.R.color.darker_gray);
-        chart.setupPieChart(oxygen_pie_chart, android.R.color.darker_gray);
-        chart.setupPieChart(temperature_pie_chart, android.R.color.darker_gray);
-        chart.setupPieChart(heartrate_pie_chart, android.R.color.darker_gray);
+        lineChartAdapter = new ChartStateAdapter(this, ChartType.LineChart);
+        lineViewPager = view.findViewById(R.id.lineChartPager);
+        lineViewPager.setAdapter(lineChartAdapter);
+        lineViewPager.setPageTransformer(new ZoomOutPageTransformer());
+
         //##############Bar chart Settings
         daily_visit_chart = view.findViewById(R.id.visit_chart);
         chart.setupBarChart(daily_visit_chart);
@@ -253,8 +217,6 @@ public class HomeFragment extends Fragment {
                     globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
                         all_readings_sorted = sortedReadings;
                         update_top_table();
-                        populate_reading_history_chart();
-                        populate_company_health_chart();
                         populate_daily_visit_chart();
                     });
                 }

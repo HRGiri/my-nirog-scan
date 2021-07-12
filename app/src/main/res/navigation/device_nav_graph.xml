@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/device_nav_graph"
     app:startDestination="@id/deviceFragment">
     <fragment
@@ -12,5 +13,13 @@
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />
+        <action
+            android:id="@+id/action_deviceFragment_to_readingsTableFragment2"
+            app:destination="@id/readingsTableFragment2" />
     </fragment>
+    <fragment
+        android:id="@+id/readingsTableFragment2"
+        android:name="com.example.mynirogscan.ReadingsTableFragment"
+        android:label="fragment_readings_table"
+        tools:layout="@layout/fragment_readings_table" />
 </navigation>

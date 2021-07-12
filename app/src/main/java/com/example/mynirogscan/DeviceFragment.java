@@ -42,7 +42,6 @@ public class DeviceFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
         String deviceId = DeviceFragmentArgs.fromBundle(getArguments()).getDEVICEID();
         Log.d("Device Fragment",String.valueOf(deviceId==null) + deviceId);
 //        Toast.makeText(getContext(),

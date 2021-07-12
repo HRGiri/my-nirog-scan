@@ -15,6 +15,9 @@
                 android:name="isDeepLink"
                 android:defaultValue="false" />
         </action>
+        <action
+            android:id="@+id/action_homeFragment_to_readingsTableFragment"
+            app:destination="@id/readingsTableFragment" />
     </fragment>
     <fragment
         android:id="@+id/addDeviceFragment"
@@ -62,8 +65,8 @@
     </fragment>
     <include app:graph="@navigation/device_nav_graph" />
     <fragment
-        android:id="@+id/settingsFragment"
-        android:name="com.example.mynirogscan.SettingsFragment"
-        android:label="fragment_settings"
-        tools:layout="@layout/fragment_settings" />
+        android:id="@+id/readingsTableFragment"
+        android:name="com.example.mynirogscan.ReadingsTableFragment"
+        android:label="fragment_readings_table"
+        tools:layout="@layout/fragment_readings_table" />
 </navigation>

@@ -129,17 +129,41 @@
                 </androidx.cardview.widget.CardView>
             </LinearLayout>
 
-            <androidx.viewpager2.widget.ViewPager2
-                android:id="@+id/pieChartPager"
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:id="@+id/imageView3"
+                    android:layout_width="50dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="right"
+                    android:rotation="180"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/abc_vector_test" />
+
+                <ImageView
+                    android:id="@+id/imageView2"
+                    android:layout_width="50dp"
+                    android:layout_height="match_parent"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/abc_vector_test" />
+
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/pieChartPager"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                </androidx.viewpager2.widget.ViewPager2>
+            </FrameLayout>
 
             <HorizontalScrollView
                 android:id="@+id/horizontalScrollView"
                 android:layout_width="match_parent"
                 android:layout_height="189dp"
                 android:layout_marginBottom="8dp"
-                android:layout_marginTop="40dp">
+                android:layout_marginTop="40dp"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -175,12 +199,41 @@
                 </LinearLayout>
             </HorizontalScrollView>
 
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:id="@+id/imageView3a"
+                    android:layout_width="50dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="right"
+                    android:rotation="180"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/abc_vector_test" />
+
+                <ImageView
+                    android:id="@+id/imageView2a"
+                    android:layout_width="50dp"
+                    android:layout_height="match_parent"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/abc_vector_test" />
+
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/lineChartPager"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                </androidx.viewpager2.widget.ViewPager2>
+            </FrameLayout>
+
             <HorizontalScrollView
                 android:id="@+id/horizontalScrollView2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="96dp"
-                android:layout_marginTop="24dp">
+                android:layout_marginTop="24dp"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -212,10 +265,18 @@
 
             </HorizontalScrollView>
 
-            <com.github.mikephil.charting.charts.BarChart
-                android:id="@+id/visit_chart"
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
-                android:layout_height="224dp" />
+                android:layout_height="match_parent"
+                android:layout_margin="8dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="8dp">
+
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/visit_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="224dp" />
+            </androidx.cardview.widget.CardView>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -228,7 +289,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:text="Button"
+                    android:text="View Readings"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent" />
             </LinearLayout>
