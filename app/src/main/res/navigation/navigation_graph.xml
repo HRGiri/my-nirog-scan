@@ -69,4 +69,9 @@
         android:name="com.example.mynirogscan.ReadingsTableFragment"
         android:label="fragment_readings_table"
         tools:layout="@layout/fragment_readings_table" />
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.mynirogscan.ProfileFragment"
+        android:label="fragment_profile"
+        tools:layout="@layout/fragment_profile" />
 </navigation>
