@@ -1,14 +1,22 @@
 package com.example.mynirogscan;
 
+import android.content.Context;
 import android.util.Log;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -16,45 +24,53 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
+import static com.example.mynirogscan.Constants.*;
 
 
 public class GlobalData extends ViewModel {
 
     private static final String TAG = "Firebase";
 
+    public Context context;
     ListenerRegistration deviceDataListeners;
     ListenerRegistration readingListeners;
-    List<DocumentSnapshot> deviceData;
-    List<DocumentSnapshot> deviceReadings;
+    List<DocumentSnapshot> deviceDataDocuments;
+    List<DocumentSnapshot> deviceReadingsDocuments;
     private MutableLiveData<List<DocumentSnapshot>> globalDeviceData = new MutableLiveData<List<DocumentSnapshot>>();
     private MutableLiveData<List<DocumentSnapshot>> globalDeviceReadings = new MutableLiveData<List<DocumentSnapshot>>();
-    private MutableLiveData<DocumentSnapshot> GlobalUsersData = new MutableLiveData<>();
+    private MutableLiveData<Map<String,Object>> globalUserData = new MutableLiveData<>();
     private FirebaseAuth mAuth;
     private FirebaseFirestore firestore;
     private ListenerRegistration documentDataListeners;
-    private DocumentSnapshot usersData;
+    private Map<String,Object> userData;
     private Map<Number, Map<String, Number>> all_readings_sorted;
     private MutableLiveData<Map<Number, Map<String, Number>>> globalAllReadingsSorted = new MutableLiveData<>();
     private Boolean isInit = false;
-    private MutableLiveData<Boolean> globalIsInit = new MutableLiveData<>();
+    private MutableLiveData<Boolean> globalIsInit = new MutableLiveData<>(false);
 
     public void init(){
-        firestore = FirebaseFirestore.getInstance();
-        firestore.enableNetwork();
-        if(documentDataListeners == null)
-            update_data();
+        mAuth = FirebaseAuth.getInstance();
+        if(mAuth.getCurrentUser() != null) {
+            firestore = FirebaseFirestore.getInstance();
+            firestore.enableNetwork();
+            if (documentDataListeners == null)
+                update_data();
+        }
     }
 
     public LiveData<Boolean> getIsInit(){
         return globalIsInit;
     }
-    public LiveData<DocumentSnapshot> getGlobalUsersData(){
-        return GlobalUsersData;
+    public LiveData<Map<String,Object>> getGlobalUserData(){
+        return globalUserData;
     }
 
     public LiveData<List<DocumentSnapshot>> getGlobalDeviceData(){
@@ -83,7 +99,7 @@ public class GlobalData extends ViewModel {
 
     private void update_data(){
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        documentDataListeners = firestore.collection(Constants.USER_DOCUMENT_NAME).document(currentUser.getUid())
+        documentDataListeners = firestore.collection(USER_DOCUMENT_NAME).document(currentUser.getUid())
                 .addSnapshotListener(new EventListener<DocumentSnapshot>() {
                     @Override
                     public void onEvent(@Nullable DocumentSnapshot snapshot,
@@ -93,8 +109,8 @@ public class GlobalData extends ViewModel {
                             return;
                         }
                         if (snapshot != null && snapshot.exists()) {
-                            usersData = snapshot;
-                            GlobalUsersData.setValue(usersData);
+                            userData = snapshot.getData();
+                            globalUserData.setValue(userData);
                         } else {
                             Log.d(TAG, "No Data");
                         }
@@ -120,8 +136,8 @@ public class GlobalData extends ViewModel {
                             Log.w(TAG, "listen:error", e);
                             return;
                         }
-                        deviceData = snapshots.getDocuments();
-                        globalDeviceData.setValue(deviceData);
+                        deviceDataDocuments = snapshots.getDocuments();
+                        globalDeviceData.setValue(deviceDataDocuments);
                     }
                 });
     }
@@ -138,8 +154,11 @@ public class GlobalData extends ViewModel {
                             return;
                         }
                         if(snapshots!=null) {
-                            deviceReadings = snapshots.getDocuments();
-                            globalDeviceReadings.setValue(deviceReadings);
+                            deviceReadingsDocuments = snapshots.getDocuments();
+                            for(DocumentSnapshot doc: deviceReadingsDocuments){
+
+                            }
+                            globalDeviceReadings.setValue(deviceReadingsDocuments);
                             extract_data_from_document();
                         }
                         else {
@@ -149,10 +168,105 @@ public class GlobalData extends ViewModel {
                 });
     }
 
+    //Update auth database to add display name
+    private void updateProfile(String name){
+        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                .setDisplayName(name)
+                .build();
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        user.updateProfile(profileUpdates)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if (task.isSuccessful()) {
+                            Log.d(TAG, "User profile updated.");
+                            Toast.makeText(context,"Profile updated successfully",Toast.LENGTH_SHORT).show();
+//                            sendEmailVerification();
+                        }
+                    }
+                });
+    }
+
+    public void signOut(){
+        mAuth.signOut();
+        isInit = false;
+        globalIsInit.setValue(isInit);
+        removeListeners();
+    }
+
+    public void uploadUserData(Map<String,Object> data){
+        firestore.collection(USER_DOCUMENT_NAME)
+                .document(mAuth.getCurrentUser().getUid())
+                .set(data,SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        Log.d(TAG,"Success");
+                        if(data.containsKey(NAME_FIELD_NAME)){
+                            updateProfile("" + data.get(NAME_FIELD_NAME));
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG,"Failure");
+                        Toast.makeText(context,"Failed to update details!",Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    public void uploadDeviceData(Map<String,Object> deviceData){
+        uploadDeviceData(deviceData,0);
+    }
+    public void uploadDeviceData(Map<String,Object> deviceData,int position){
+        Log.d(TAG,"Uploading...");
+        firestore = FirebaseFirestore.getInstance();
+        DocumentReference docRef = firestore.collection(USER_DOCUMENT_NAME)
+                .document(mAuth.getCurrentUser().getUid())
+                .collection(DEVICE_COLLECTION_NAME)
+                .document("" + deviceData.get(DEVICE_ID_FIELD_NAME));
+        docRef.set(deviceData, SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        Log.d(TAG,"Success");
+                        if(deviceData.containsKey(DEVICE_NAME_FIELD_NAME)) {
+                            ArrayList<Map<String, String>> deviceList = (ArrayList<Map<String, String>>) userData.get(DEVICE_LIST_FIELD_NAME);
+                            deviceList.get(position).replace(NAME_FIELD_NAME,"" + deviceData.get(DEVICE_NAME_FIELD_NAME));
+                            firestore.collection(USER_DOCUMENT_NAME)
+                                    .document(mAuth.getCurrentUser().getUid())
+                                    .update(DEVICE_LIST_FIELD_NAME,deviceList)
+                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void unused) {
+                                            Log.d(TAG,"Success");
+                                            Toast.makeText(context,"Details updated successfully!",Toast.LENGTH_SHORT).show();
+                                        }
+                                    })
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            Log.w(TAG,"Failure");
+                                            Toast.makeText(context,"Failed to update details!",Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG,"Failure");
+                    }
+                });
+    }
+
     private void extract_data_from_document(){
 
         Map<Number, Map<String,Number>> all_readings = new HashMap<Number,Map<String,Number>>();
-        for(DocumentSnapshot curr_doc : deviceReadings){
+        for(DocumentSnapshot curr_doc : deviceReadingsDocuments){
             Map<String,Map<String,Number>> curr_device_readings = (Map<String,Map<String,Number>>)curr_doc.get("previous_readings");
             for(String key: curr_device_readings.keySet())
             {
@@ -164,18 +278,33 @@ public class GlobalData extends ViewModel {
             }
         }
         all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings).descendingMap();
-        Log.d(TAG,"sorted list "+all_readings_sorted.keySet());
+//        Log.d(TAG,"sorted list "+all_readings_sorted.keySet());
         globalAllReadingsSorted.setValue(all_readings_sorted);
         globalIsInit.setValue(true);
     }
 
+    public Map<Number,Map<String,Number>> getDeviceReadingsSorted(String deviceID){
+        Map<Number,Map<String,Number>> deviceReadings = new HashMap<>();
+        for(Number key : all_readings_sorted.keySet()){
+            if(String.format("" + all_readings_sorted.get(key).get("uuid")).equals(deviceID))
+                deviceReadings.put(key,all_readings_sorted.get(key));
+        }
+        return deviceReadings;
+    }
+
     public void removeListeners(){
-        if(documentDataListeners != null)       //Might not be required.
+        if(documentDataListeners != null) {
             documentDataListeners.remove();
-        if(deviceDataListeners != null)
+            documentDataListeners = null;
+        }
+        if(deviceDataListeners != null) {
             deviceDataListeners.remove();
-        if(readingListeners != null)
+            deviceDataListeners = null;
+        }
+        if(readingListeners != null) {
             readingListeners.remove();
+            readingListeners = null;
+        }
 
     }
 }

@@ -13,15 +13,15 @@ public class Constants {
     public static final String NOTIFY_CHARACTERISTIC_UUID = "0000bb02-0000-1000-8000-00805f9b34fb";
 
     public static final String USER_DOCUMENT_NAME = "users";
-    public static final String DEVICE_DOCUMENT_NAME = "devices";
+    public static final String DEVICE_COLLECTION_NAME = "devices";
     public static final String READINGS_DOCUMENT_NAME = "Readings";
 
     public static final String FCM_TOKEN_FIELD_NAME = "FCM_TOKEN";
     public static final String DEVICE_LIST_FIELD_NAME = "device_list";
-    public static final String EMAIL_FIELD_NAME = "organization";
+    public static final String ORGANIZATION_FIELD_NAME = "organization";
     public static final String NAME_FIELD_NAME = "name";
     public static final String PHONE_FIELD_NAME = "phone";
-    public static final String DEVICE_NAME_FIELD_NAME = "DEVICE_NAME";
+    public static final String DEVICE_NAME_FIELD_NAME = "DISPLAY_NAME";
     public static final String DEVICE_ID_FIELD_NAME = "DEVICE_ID";
     public static final String DEVICE_WIFI_PASSWORD_FIELD_NAME = "WIFI_PASSWORD";
     public static final String DEVICE_WIFI_SSID_FIELD_NAME = "WIFI_SSID";

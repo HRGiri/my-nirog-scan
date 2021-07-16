@@ -1,6 +1,7 @@
 package com.example.mynirogscan;
 
 import android.graphics.Color;
+import android.view.MotionEvent;
 
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.BarChart;
@@ -21,6 +22,8 @@ import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.PercentFormatter;
 import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.listener.ChartTouchListener;
+import com.github.mikephil.charting.listener.OnChartGestureListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
 
 import java.text.SimpleDateFormat;
@@ -50,32 +53,39 @@ public class Charts {
     final float MIN_TEMPERATURE = 97f;
     Map<Float,String> timestamp_string;
 
+    final int[] colorArray = {
+            Color.rgb(192, 255, 140),
+            Color.rgb(255, 208, 140),
+            Color.rgb(255, 247, 140),
+            Color.rgb(255, 80, 90)
+    };
+
     public void extract_reading_history(Map<Number,Map<String,Number>> readings, List<Entry> oxygen_entries ,List<Entry> temperature_entries ,List<Entry> heartrate_entries){
 
-        timestamp_string = new HashMap<Float, String>();
-        float counter = 0f;
-        Set<Number> timestamp_keyset = readings.keySet();
-        Number time_diff =  (long)timestamp_keyset.toArray()[0] - (long)timestamp_keyset.toArray()[49];
-        SimpleDateFormat dateformat;
-        if((long)time_diff < (long)(3600*24*1000)){
-            dateformat = new SimpleDateFormat("HH:mm");
-        }else{
-            dateformat = new SimpleDateFormat("dd-MM HH:mm");
-        }
-        for (Number timestamp: timestamp_keyset) {
-            Date date = new Date((long)timestamp);
-            dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
-            String xaxis_timestamp = dateformat.format(date);
-
-            timestamp_string.put((float)counter,xaxis_timestamp);
-            oxygen_entries.add(new Entry((float)counter, readings.get(timestamp).get("oxygen").floatValue()));
-            temperature_entries.add(new Entry((float)counter, readings.get(timestamp).get("temperature").floatValue()));
-            heartrate_entries.add(new Entry((float)counter, readings.get(timestamp).get("heartrate").floatValue()));
-            counter = counter + 1f;
-            if(counter > 50f){
-                break;
+            timestamp_string = new HashMap<Float, String>();
+            float counter = 0f;
+            Set<Number> timestamp_keyset = readings.keySet();
+            Number time_diff = (long) timestamp_keyset.toArray()[0] - (long) timestamp_keyset.toArray()[49];
+            SimpleDateFormat dateformat;
+            if ((long) time_diff < (long) (3600 * 24 * 1000)) {
+                dateformat = new SimpleDateFormat("HH:mm");
+            } else {
+                dateformat = new SimpleDateFormat("dd-MM HH:mm");
             }
-        }
+            for (Number timestamp : timestamp_keyset) {
+                Date date = new Date((long) timestamp);
+                dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
+                String xaxis_timestamp = dateformat.format(date);
+
+                timestamp_string.put((float) counter, xaxis_timestamp);
+                oxygen_entries.add(new Entry((float) counter, readings.get(timestamp).get("oxygen").floatValue()));
+                temperature_entries.add(new Entry((float) counter, readings.get(timestamp).get("temperature").floatValue()));
+                heartrate_entries.add(new Entry((float) counter, readings.get(timestamp).get("heartrate").floatValue()));
+                counter = counter + 1f;
+                if (counter > 50f) {
+                    break;
+                }
+            }
     }
 
     public int check_threshold(float o2val,float tempval, float hrval){
@@ -190,8 +200,9 @@ public class Charts {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
 
 
+        lineChart.getAxisRight().setEnabled(false);
         YAxis yAxis = lineChart.getAxisLeft();
-        yAxis.setTextColor(ColorTemplate.getHoloBlue());
+//        yAxis.setTextColor(ColorTemplate.getHoloBlue());
         yAxis.setAxisMaximum(yaxis_max);
         yAxis.setAxisMinimum(yaxis_min);
         yAxis.setDrawGridLines(true);
@@ -203,10 +214,9 @@ public class Charts {
         pieChart.getDescription().setEnabled(false);
         pieChart.setExtraOffsets(5, 5, 5, 5);
 
-
         pieChart.setDragDecelerationFrictionCoef(0.95f);
 
-        pieChart.setDrawHoleEnabled(true);
+        pieChart.setDrawHoleEnabled(false);
         pieChart.setHoleColor(Color.WHITE);
 
         pieChart.setTransparentCircleColor(Color.WHITE);
@@ -233,10 +243,11 @@ public class Charts {
         l.setXEntrySpace(7f);
         l.setYEntrySpace(0f);
         l.setYOffset(0f);
-
+        l.setTextColor(Color.BLACK);
         // entry label styling
-        pieChart.setEntryLabelColor(label_color);
-        pieChart.setEntryLabelTextSize(12f);
+        pieChart.setDrawEntryLabels(false);
+//        pieChart.setEntryLabelColor(label_color);
+//        pieChart.setEntryLabelTextSize(12f);
 
     }
 
@@ -253,6 +264,7 @@ public class Charts {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setDrawGridLines(false);
 
+        barChart.getAxisRight().setEnabled(false);
         YAxis leftAxis = barChart.getAxisLeft();
         leftAxis.setPosition(YAxis.YAxisLabelPosition.OUTSIDE_CHART);
         leftAxis.setSpaceTop(15f);
@@ -266,11 +278,14 @@ public class Charts {
         l.setFormSize(9f);
         l.setTextSize(11f);
         l.setXEntrySpace(4f);
+        l.setEnabled(false);
     }
 
     public void populateBarChart(BarChart barChart, List<BarEntry> barentries ,String label){
 
         BarDataSet data_set = new BarDataSet(barentries,label);
+        data_set.setColors(colorArray);
+        data_set.setValueTextColor(Color.BLUE);
         BarData data = new BarData(data_set);
         data.setBarWidth(0.9f);
         barChart.setData(data);
@@ -285,8 +300,9 @@ public class Charts {
         setData.setDrawCircles(false);
         setData.setFillAlpha(65);
         setData.setFillColor(ColorTemplate.getHoloBlue());
+        setData.setColor(highlight_colors);
         setData.setHighLightColor(Color.rgb(244, 117, 117));
-
+//        setData.setHighLightColor(highlight_colors);
 
         ValueFormatter formatter = new ValueFormatter() {
             @Override
@@ -301,10 +317,58 @@ public class Charts {
 
 
         LineData data = new LineData(setData);
+        data.setDrawValues(false);
         data.setValueTextColor(text_color);
         data.setValueTextSize(9f);
 
+        lineChart.setOnChartGestureListener(new OnChartGestureListener() {
+            @Override
+            public void onChartGestureStart(MotionEvent me, ChartTouchListener.ChartGesture lastPerformedGesture) {
+
+            }
+
+            @Override
+            public void onChartGestureEnd(MotionEvent me, ChartTouchListener.ChartGesture lastPerformedGesture) {
+
+            }
+
+            @Override
+            public void onChartLongPressed(MotionEvent me) {
+
+            }
+
+            @Override
+            public void onChartDoubleTapped(MotionEvent me) {
+
+            }
+
+            @Override
+            public void onChartSingleTapped(MotionEvent me) {
+
+            }
+
+            @Override
+            public void onChartFling(MotionEvent me1, MotionEvent me2, float velocityX, float velocityY) {
+
+            }
+
+            @Override
+            public void onChartScale(MotionEvent me, float scaleX, float scaleY) {
+                if((scaleX > 1.5) || (scaleY > 1.5)){
+                    lineChart.getLineData().setDrawValues(true);
+                }
+                else {
+                    lineChart.getLineData().setDrawValues(false);
+                }
+            }
+
+            @Override
+            public void onChartTranslate(MotionEvent me, float dX, float dY) {
+
+            }
+        });
         lineChart.setData(data);
+        lineChart.invalidate();
 
     }
 
@@ -314,34 +378,39 @@ public class Charts {
 
         ArrayList<Integer> colors = new ArrayList<>();
 
-        for (int c : ColorTemplate.VORDIPLOM_COLORS)
-            colors.add(c);
+//        for (int c : ColorTemplate.VORDIPLOM_COLORS)
+//            colors.add(c);
 
-        for (int c : ColorTemplate.JOYFUL_COLORS)
-            colors.add(c);
+//        for (int c : ColorTemplate.JOYFUL_COLORS)
+//            colors.add(c);
 
-        for (int c : ColorTemplate.COLORFUL_COLORS)
-            colors.add(c);
+//        for (int c : ColorTemplate.COLORFUL_COLORS)
+//            colors.add(c);
 
-        for (int c : ColorTemplate.LIBERTY_COLORS)
-            colors.add(c);
+//        for (int c : ColorTemplate.LIBERTY_COLORS)
+//            colors.add(c);
 
-        for (int c : ColorTemplate.PASTEL_COLORS)
+//        for (int c : ColorTemplate.PASTEL_COLORS)
+//            colors.add(c);
+//        int[] colorArray = new int[]{Color.GREEN,Color.YELLOW, ColorTemplate.rgb("ff8800"),Color.RED};
+        for(int c : colorArray)
             colors.add(c);
-
-        colors.add(ColorTemplate.getHoloBlue());
 
         piedataset.setDrawIcons(false);
         piedataset.setSliceSpace(3f);
         piedataset.setSelectionShift(5f);
         piedataset.setColors(colors);
+        piedataset.setValueTextColor(text_color);
+
 
         PieData data = new PieData(piedataset);
         data.setValueFormatter(new PercentFormatter());
         data.setValueTextSize(11f);
         data.setValueTextColor(text_color);
 
+
         piechart.setData(data);
+        piechart.invalidate();
     }
 
 

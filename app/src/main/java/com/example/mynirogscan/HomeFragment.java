@@ -3,6 +3,7 @@ package com.example.mynirogscan;
 import android.content.Intent;
 import android.os.Bundle;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -32,15 +33,17 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
-import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -63,12 +66,13 @@ public class HomeFragment extends Fragment {
     private TextView oxygen_value;
     private TextView heartrate_value;
     private TextView temperature_value;
+    private TextView lastReadValue;
     private Button viewReadingsButton;
     private BarChart daily_visit_chart;
     public FirebaseAuth mAuth;
     private FirebaseFirestore firestore;
     private FirebaseUser currentUser;
-    private DocumentSnapshot DocumentData;
+    private Map<String,Object> userData;
     Map<Number, Map<String,Number>> all_readings_sorted;
     Float counter;   //Revisit after testing
     int total_reads;
@@ -81,6 +85,7 @@ public class HomeFragment extends Fragment {
     private GlobalData globalData;
     private ChartStateAdapter lineChartAdapter;
     private ViewPager2 lineViewPager;
+
 
 
     public HomeFragment() {
@@ -127,9 +132,10 @@ public class HomeFragment extends Fragment {
         });
 
         total_visits_value = view.findViewById(R.id.total_visitors_card);
-        oxygen_value = view.findViewById(R.id.oxygen_card);
-        temperature_value = view.findViewById(R.id.temperature_card);
-        heartrate_value = view.findViewById(R.id.heartrate_card);
+        oxygen_value = view.findViewById(R.id.tv_spo_val);
+        temperature_value = view.findViewById(R.id.tv_temp_val);
+        heartrate_value = view.findViewById(R.id.tv_hr_val);
+        lastReadValue = view.findViewById(R.id.tv_last_read);
 
         /*Daily visit chart*/
         daily_visit_chart = view.findViewById(R.id.visit_chart);
@@ -152,9 +158,9 @@ public class HomeFragment extends Fragment {
         // Check if user is signed in (non-null) and update UI accordingly.
         mAuth = FirebaseAuth.getInstance();
         currentUser = mAuth.getCurrentUser();
+        firestore = FirebaseFirestore.getInstance();
         if(currentUser == null){
-            //TODO: Proceed to SignIn Menu
-//            startActivity(new Intent(getApplicationContext(),LoginActivity.class));
+            info.setText("Please wait... " );
             // Choose authentication providers
             List<AuthUI.IdpConfig> providers = Arrays.asList(
                     new AuthUI.IdpConfig.EmailBuilder().enableEmailLinkSignIn()
@@ -165,45 +171,53 @@ public class HomeFragment extends Fragment {
             startActivityForResult(
                     AuthUI.getInstance()
                             .createSignInIntentBuilder()
+                            .setLogo(R.mipmap.ic_nirog_round)
                             .setAvailableProviders(providers)
                             .build(),
                     RC_SIGN_IN);
 
         }
         else {
-//            update_data();
-            globalData = new ViewModelProvider(requireActivity()).get(GlobalData.class);
-            globalData.init();
-            globalData.getIsInit().observe(requireActivity(),isInit->{
-                if(isInit){
-                    globalData.getGlobalUsersData().observe(requireActivity(),usersData->{
-                        DocumentData = usersData;
-                    });
-                    globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
-                        all_readings_sorted = sortedReadings;
-                        update_top_table();
-                        populate_daily_visit_chart();
-                    });
-                }
-            });
+            getGlobalData();
         }
+    }
+
+//    // See: https://developer.android.com/training/basics/intents/result
+//    private final ActivityResultLauncher<Intent> signInLauncher = registerForActivityResult(
+//            new FirebaseAuthUIActivityResultContract(),
+//            new ActivityResultCallback<FirebaseAuthUIAuthenticationResult>() {
+//                @Override
+//                public void onActivityResult(FirebaseAuthUIAuthenticationResult result) {
+//                    onSignInResult(result);
+//                }
+//            }
+//    );
+
+    private void getGlobalData() {
+        globalData = new ViewModelProvider(requireActivity()).get(GlobalData.class);
+        globalData.context = getContext();
+        globalData.getIsInit().observe(requireActivity(),isInit->{
+            if(isInit){
+                globalData.getGlobalUserData().observe(requireActivity(), usersData->{
+                    userData = usersData;
+                    currentUser = mAuth.getCurrentUser();
+                    info.setText("Hello, " + currentUser.getDisplayName());
+                });
+                globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
+                    all_readings_sorted = sortedReadings;
+                    update_top_table();
+                    populate_daily_visit_chart();
+                });
+            }
+            else {
+                globalData.init();
+            }
+        });
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        if(currentUser != null) {
-            info.setText("Hello " + currentUser.getDisplayName());
-
-            Log.d(TAG,"Got the current user : "+ currentUser.getDisplayName());
-        } else {
-            info.setText("PLease wait... " );  //           Add animation
-            currentUser = mAuth.getCurrentUser();
-            if(currentUser != null){
-                info.setText("Successfully Logged in");
-                info.setText("Hello " + currentUser.getDisplayName());
-            }
-        }
     }
 
     @Override
@@ -229,7 +243,7 @@ public class HomeFragment extends Fragment {
                                     if (task.getResult().exists()) {
                                         Log.d(TAG, "Google Found it");
                                         createFCMtoken();
-
+                                        getGlobalData();
                                     } else {
                                         Log.d(TAG, "Google sign In Lets register you");
 //                                        Intent intent = new Intent(getContext(),
@@ -269,7 +283,7 @@ public class HomeFragment extends Fragment {
 
                         // Get new FCM registration token
                         token = task.getResult();
-                        Log.d(TAG,"Token created"+token);
+                        Log.d(TAG,"Token created: "+token);
                         updateFCMToken();
                     }
                 });
@@ -338,11 +352,17 @@ public class HomeFragment extends Fragment {
         /* Update Total Read, Last readings */
         //Assumption : all_reading_sorted contains only the latest readings
         total_reads = all_readings_sorted.size();
+        SimpleDateFormat dateformat = new SimpleDateFormat("EEE, d'th' MMM, yyyy HH:mm aaa");
+        dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
         Number last_read_timestamp = (Number)all_readings_sorted.keySet().toArray()[0];
+        Date date = new Date((long)last_read_timestamp);
+
+        lastReadValue.setText(dateformat.format(date));
         total_visits_value.setText(String.format("%d",total_reads));
         oxygen_value.setText(String.format("%.1f %%",all_readings_sorted.get(last_read_timestamp).get("oxygen").floatValue()));
-        temperature_value.setText(String.format("%.1f \u00B0 F",all_readings_sorted.get(last_read_timestamp).get("temperature").floatValue()));
+        temperature_value.setText(String.format("%.1f \u2109",all_readings_sorted.get(last_read_timestamp).get("temperature").floatValue()));
         heartrate_value.setText(String.format("%d bpm",all_readings_sorted.get(last_read_timestamp).get("heartrate").intValue()));
+
 
     }
 
@@ -365,7 +385,7 @@ public class HomeFragment extends Fragment {
      * Method to generate a new id
      */
     private String generateDeviceId(){
-        ArrayList<Map<String,String>> deviceList = (ArrayList<Map<String, String>>) DocumentData.get("device_list");
+        ArrayList<Map<String,String>> deviceList = (ArrayList<Map<String, String>>) userData.get("device_list");
         if(deviceList == null){
             return currentUser.getUid() + "-001";
         }

@@ -79,21 +79,24 @@ public class ReadingsAdapter extends RecyclerView.Adapter<ReadingsAdapter.ViewHo
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         SimpleDateFormat dateformat;
         Number timestamp = localData.get(position).get("timestamp");
-        Number time_diff =  Calendar.getInstance().getTimeInMillis() - (long)timestamp;
-        if((long)time_diff < (long)(3600*24*1000)){
-            dateformat = new SimpleDateFormat("HH:mm");
-        }else{
-            dateformat = new SimpleDateFormat("dd-MM HH:mm");
+        Number time_diff =  (Calendar.getInstance().getTimeInMillis() - (long)timestamp)/1000;
+        if((long)time_diff < (long)(3600*24)){
+            dateformat = new SimpleDateFormat("MMM d\nHH:mm");
+        }else if((long)time_diff < (long)(365*3600*24)){
+            dateformat = new SimpleDateFormat("MMM d\nHH:mm");
         }
-            Date date = new Date((long)timestamp);
-            dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
-            String str_timestamp = dateformat.format(date);
+        else {
+            dateformat = new SimpleDateFormat("MMM d, yyyy\nHH:mm");
+        }
+        Date date = new Date((long)timestamp);
+        dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
+        String str_timestamp = dateformat.format(date);
 
-            holder.getTimeTextView().setText(str_timestamp);
+        holder.getTimeTextView().setText(str_timestamp);
 //            holder.getNameTextView().setText(localData.get(position).get("uuid") + "");
-            holder.getSpoTextView().setText(String.format("%.1f %%",localData.get(position).get(Constants.OXYGEN_FIELD_NAME).floatValue()));
-            holder.getTempTextView().setText(String.format("%.1f \u2109",localData.get(position).get(Constants.TEMPERATURE_FIELD_NAME).floatValue()));
-            holder.getHrTextView().setText(String.format("%d bpm",localData.get(position).get(Constants.HEART_RATE_FIELD_NAME).intValue()));
+        holder.getSpoTextView().setText(String.format("%.1f %%",localData.get(position).get(Constants.OXYGEN_FIELD_NAME).floatValue()));
+        holder.getTempTextView().setText(String.format("%.1f \u2109",localData.get(position).get(Constants.TEMPERATURE_FIELD_NAME).floatValue()));
+        holder.getHrTextView().setText(String.format("%d bpm",localData.get(position).get(Constants.HEART_RATE_FIELD_NAME).intValue()));
     }
 
     @Override

@@ -35,7 +35,8 @@
                 android:id="@+id/settings_device_dropdown"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="8dp" />
+                android:layout_margin="8dp"
+                android:visibility="gone" />
 
             <EditText
                 android:id="@+id/et_settings_device_name"

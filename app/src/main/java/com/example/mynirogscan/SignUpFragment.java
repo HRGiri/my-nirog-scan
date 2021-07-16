@@ -24,9 +24,11 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks;
 import com.google.firebase.dynamiclinks.PendingDynamicLinkData;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.WriteBatch;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.ArrayList;
@@ -314,12 +316,17 @@ public class SignUpFragment extends Fragment {
 
     //Update FCM Token in DataBase.
     private void updateFCMToken(){
+        // Get a new write batch
+        WriteBatch batch = firestore.batch();
+
         Map<String, String> user = new HashMap<>();
         user.put("FCMToken", token);
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         Log.d(TAG, "FCM token s! + "+user.toString());
-        firestore.collection("users").document(currentUser.getUid())
-                .set(user, SetOptions.merge())
+        DocumentReference docRef = firestore.collection(Constants.USER_DOCUMENT_NAME).document(currentUser.getUid());
+        batch.set(docRef, user, SetOptions.merge());
+
+        batch.commit()
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void unused) {
@@ -340,7 +347,7 @@ public class SignUpFragment extends Fragment {
         // Create a new user with a first and last name
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         Map<String, Object> user = new HashMap<>();
-        user.put("name", name+" "+lastname);
+        user.put("name", name + " " + lastname);
         user.put("email", currentUser.getEmail());
         user.put("organization",organization);
         user.put("phone",phone);

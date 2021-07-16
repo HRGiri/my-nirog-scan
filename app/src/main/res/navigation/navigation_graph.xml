@@ -7,10 +7,10 @@
     <fragment
         android:id="@+id/homeFragment"
         android:name="com.example.mynirogscan.HomeFragment"
-        android:label="HomeFragment" >
+        android:label="My NirogScan">
         <action
             android:id="@+id/action_homeFragment_to_signUpFragment"
-            app:destination="@id/signUpFragment" >
+            app:destination="@id/signUpFragment">
             <argument
                 android:name="isDeepLink"
                 android:defaultValue="false" />
@@ -22,7 +22,7 @@
     <fragment
         android:id="@+id/addDeviceFragment"
         android:name="com.example.mynirogscan.AddDeviceFragment"
-        android:label="AddDeviceFragment" >
+        android:label="Add Device" >
         <argument
             android:name="FCMToken"
             app:argType="string"
@@ -37,7 +37,7 @@
     <fragment
         android:id="@+id/signUpFragment"
         android:name="com.example.mynirogscan.SignUpFragment"
-        android:label="SignUpFragment">
+        android:label="Sign In">
         <argument
             android:name="isDeepLink"
             android:defaultValue="true"
@@ -53,8 +53,8 @@
     <fragment
         android:id="@+id/devicesScreen"
         android:name="com.example.mynirogscan.DevicesScreen"
-        android:label="fragment_devices__screen"
-        tools:layout="@layout/fragment_devices_screen" >
+        android:label="Devices"
+        tools:layout="@layout/fragment_devices_screen">
         <action
             android:id="@+id/action_devicesScreen_to_device_nav_graph"
             app:destination="@id/device_nav_graph"
@@ -67,11 +67,16 @@
     <fragment
         android:id="@+id/readingsTableFragment"
         android:name="com.example.mynirogscan.ReadingsTableFragment"
-        android:label="fragment_readings_table"
+        android:label="Readings"
         tools:layout="@layout/fragment_readings_table" />
     <fragment
         android:id="@+id/profileFragment"
         android:name="com.example.mynirogscan.ProfileFragment"
-        android:label="fragment_profile"
-        tools:layout="@layout/fragment_profile" />
+        android:label="Profile"
+        tools:layout="@layout/fragment_profile" >
+        <action
+            android:id="@+id/action_profileFragment_to_homeFragment"
+            app:destination="@id/homeFragment"
+            app:launchSingleTop="true" />
+    </fragment>
 </navigation>

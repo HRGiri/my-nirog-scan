@@ -6,7 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.NavDirections;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 
@@ -18,11 +18,9 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
-import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -33,10 +31,13 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
 
     private Spinner dropDown;
 
-    ArrayList<String> devices = new ArrayList<>();
+    ArrayList<String> deviceNames = new ArrayList<>();
+    ArrayList<Map<String,String>> deviceList;
     String[] deviceArray = {"Device 1","Device 2","Device 3"};
+    private String deviceId;
     private Button addDeviceButton;
     private Button configureButton;
+    private GlobalData globalData;
 
 
     public DevicesScreen() {
@@ -81,7 +82,7 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
         configureButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                DialogFragment newFragment = new SettingsFragment(DevicesScreen.this);
+                DialogFragment newFragment = new SettingsFragment(DevicesScreen.this, deviceId);
                 newFragment.show(getParentFragmentManager(), SettingsFragment.TAG);
             }
         });
@@ -90,22 +91,34 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
         // Specify the layout to use when the list of choices appears
         dropDown.setOnItemSelectedListener(this);
 
-        // Create the instance of ArrayAdapter
-        devices.addAll(Arrays.asList(deviceArray));
-        ArrayAdapter adapter = new ArrayAdapter(getContext(),
-                android.R.layout.simple_spinner_item,
-                devices);
+        globalData = new ViewModelProvider(requireActivity()).get(GlobalData.class);
+        globalData.getIsInit().observe(requireActivity(),isInit->{
+            if(isInit){
+                globalData.getGlobalUserData().observe(requireActivity(),userData->{
+                    deviceList = (ArrayList<Map<String, String>>) userData.get(Constants.DEVICE_LIST_FIELD_NAME);
+                    deviceNames = new ArrayList<>();
+                    for(Map<String,String> map:deviceList){
+                        deviceNames.add(map.get(Constants.NAME_FIELD_NAME));
+                    }
+                    // Create the instance of ArrayAdapter
+                    ArrayAdapter adapter = new ArrayAdapter(getContext(),
+                            android.R.layout.simple_spinner_item,
+                            deviceNames);
 
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        // Apply the adapter to the spinner
-        dropDown.setAdapter(adapter);
+                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    // Apply the adapter to the spinner
+                    dropDown.setAdapter(adapter);
+                });
+            }
+        });
 
     }
 
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
         Bundle args = new Bundle();
-        args.putString("DEVICE_ID",devices.get(i));
+        deviceId = deviceList.get(i).get("uuid");
+        args.putString("DEVICE_ID",deviceList.get(i).get("uuid"));
 //        Navigation.findNavController(getActivity(),R.id.devices_nav_host).setGraph(R.navigation.device_nav_graph,args);
 //        Navigation
 //                .findNavController(getActivity(),R.id.main_activity_nav_host)

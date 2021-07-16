@@ -14,7 +14,7 @@
         <!-- Customize your theme here. -->
     </style>
 
-    <style name="Theme.MyNirogScan2" parent="Theme.AppCompat.DayNight.DarkActionBar">
+    <style name="Theme.MyNirogScan2" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/dark_blue</item>
         <item name="colorPrimaryVariant">@color/purple_700</item>
@@ -26,6 +26,12 @@
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimary</item>
         <!-- Customize your theme here. -->
+        <item name="android:textColor">@color/dark_blue</item>
+
+        <item name="android:actionBarStyle">@style/MyActionBar</item>
+        <item name="android:actionBarTabTextStyle">@style/MyActionBar.TabText</item>
+        <item name="android:actionMenuTextColor">@color/actionbar_text</item>
+
         <!-- New MaterialComponents attributes. -->
         <item name="colorSurface">@color/surface_color</item>
         <item name="colorOnBackground">@color/color_on_background</item>
@@ -48,6 +54,21 @@
         <item name="materialCalendarStyle">@style/Widget.MaterialComponents.MaterialCalendar</item>
         <item name="materialCalendarFullscreenTheme">@style/CustomThemeOverlay_MaterialCalendar_Fullscreen</item>
         <item name="materialCalendarTheme">@style/ThemeOverlay.MaterialComponents.MaterialCalendar</item>
+    </style>
+
+    <!-- ActionBar styles -->
+    <style name="MyActionBar" parent="@style/Widget.AppCompat.ActionBar">
+        <item name="android:titleTextStyle">@style/MyActionBar.TitleText</item>
+    </style>
+
+    <!-- ActionBar title text -->
+    <style name="MyActionBar.TitleText" parent="@style/TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/actionbar_text</item>
+    </style>
+
+    <!-- ActionBar tabs text styles -->
+    <style name="MyActionBar.TabText" parent="@style/Widget.AppCompat.ActionBar.TabText">
+        <item name="android:textColor">@color/actionbar_text</item>
     </style>
 
     <style name="CustomThemeOverlay_MaterialCalendar_Fullscreen"

@@ -28,9 +28,20 @@ public class ChartStateAdapter extends FragmentStateAdapter {
 
     private ChartType chartType;
     private int NUM_PAGES;
+    private String deviceID;
+
     public ChartStateAdapter(@NonNull Fragment fragment, ChartType chartType) {
         super(fragment);
         this.chartType = chartType;
+        if(chartType == ChartType.PieChart)
+            NUM_PAGES = 4;
+        else
+            NUM_PAGES = 3;
+    }
+    public ChartStateAdapter(@NonNull Fragment fragment, ChartType chartType, String deviceID) {
+        super(fragment);
+        this.chartType = chartType;
+        this.deviceID = deviceID;
         if(chartType == ChartType.PieChart)
             NUM_PAGES = 4;
         else
@@ -43,6 +54,7 @@ public class ChartStateAdapter extends FragmentStateAdapter {
         // Return a NEW fragment instance in createFragment(int)
         Fragment fragment = new ChartFragment();
         Bundle args = new Bundle();
+        args.putString(ChartFragment.ARG_DEVICE_ID,deviceID);
         args.putInt(ChartFragment.ARG_CHART_TYPE,chartType.getValue());
         if(chartType == ChartType.PieChart)
             args.putInt(ChartFragment.ARG_PIE_CHART, position);

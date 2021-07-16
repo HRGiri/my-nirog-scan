@@ -1,5 +1,7 @@
 package com.example.mynirogscan;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -10,6 +12,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.provider.DocumentsContract;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,18 +21,28 @@ import android.widget.Button;
 
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
+import com.google.common.collect.Iterables;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 
+import static android.app.Activity.RESULT_OK;
 import static com.example.mynirogscan.Constants.CREATED_FIELD_NAME;
 
 /**
@@ -86,16 +99,15 @@ public class ReadingsTableFragment extends Fragment {
         globalData.getIsInit().observe(requireActivity(),isInit->{
             if(isInit){
                 globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
-                    if(readings.size() == 0) {
-                        for (Number timestamp : sortedReadings.keySet()) {
-                            Map<String, Number> map = new HashMap<>();
-                            map.put("timestamp", timestamp);
-                            map.putAll(sortedReadings.get(timestamp));
-                            readings.add(map);
-                        }
-                        ReadingsAdapter readingsAdapter = new ReadingsAdapter(readings);
-                        recyclerView.setAdapter(readingsAdapter);
+                    readings = new ArrayList<>();
+                    for (Number timestamp : sortedReadings.keySet()) {
+                        Map<String, Number> map = new HashMap<>();
+                        map.put("timestamp", timestamp);
+                        map.putAll(sortedReadings.get(timestamp));
+                        readings.add(map);
                     }
+                    ReadingsAdapter readingsAdapter = new ReadingsAdapter(readings);
+                    recyclerView.setAdapter(readingsAdapter);
                 });
             }
         });
@@ -124,7 +136,7 @@ public class ReadingsTableFragment extends Fragment {
                 }
                 if(toFetch){
                     // Fetch readings matching the time period
-                    getDateRangeReadings();
+//                    getDateRangeReadings();
                 }
                 generateCSV();
             });
@@ -141,7 +153,73 @@ public class ReadingsTableFragment extends Fragment {
 //                .whereGreaterThan(CREATED_FIELD_NAME,)
     }
 
+
     private void generateCSV() {
-        // TODO: Implement csv generation
+        String content = generateCsvContent(readings);
+        Log.d(TAG,content);
+        String fileName = "readings" + Calendar.getInstance().getTimeInMillis() + ".csv";
+        createFile(getContext().getFilesDir().toURI(),fileName);
+//            File file = new File(getContext().getFilesDir(),fileName +".csv");
+//            // if file doesnt exists, then create it
+//            if (!file.exists()) file.createNewFile();
+//
+//            FileWriter fw = new FileWriter(file.getAbsoluteFile());
+//            BufferedWriter bw = new BufferedWriter(fw);
+//            bw.write(content);
+//            bw.close();
+
+    }
+
+    private String generateCsvContent(ArrayList<Map<String,Number>> readingsList){
+        String content = "";
+        for(Map<String,Number> map:readingsList){
+            StringJoiner stringJoiner = new StringJoiner(",");
+            for(Map.Entry<String,Number> entry : map.entrySet()){
+                stringJoiner.add("" + entry.getValue());
+            }
+            content += stringJoiner.toString() + "\n";
+        }
+        return content;
+    }
+
+    // Request code for creating a CSV document.
+    private static final int CREATE_FILE = 1;
+
+    private void createFile(URI pickerInitialUri, String filename) {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("text/plain");
+        intent.putExtra(Intent.EXTRA_TITLE, filename);
+
+        // Optionally, specify a URI for the directory that should be opened in
+        // the system file picker when your app creates the document.
+        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, pickerInitialUri);
+
+        startActivityForResult(intent, CREATE_FILE);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode){
+            case CREATE_FILE:
+                if(resultCode == RESULT_OK){
+                }
+        }
+    }
+
+    // Request code for selecting a PDF document.
+    private static final int PICK_PDF_FILE = 2;
+
+    private void openFile(Uri pickerInitialUri) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("text/plain");
+
+        // Optionally, specify a URI for the file that should appear in the
+        // system file picker when it loads.
+        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, pickerInitialUri);
+
+        startActivityForResult(intent, PICK_PDF_FILE);
     }
 }

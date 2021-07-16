@@ -34,6 +34,9 @@ public class ChartFragment extends Fragment {
     public static final String ARG_PIE_CHART = "PIE_CHART";
     public static final String ARG_LINE_CHART = "LINE_CHART";
     public static final String ARG_CHART_TYPE = "CHART_TYPE";
+    public static final String ARG_DEVICE_ID = "DEVICE_ID";
+
+    private String deviceID;
 
     private PieChart pieChart;
     private Charts charts = new Charts();
@@ -72,11 +75,13 @@ public class ChartFragment extends Fragment {
         pieChart = view.findViewById(R.id.reusable_pie_chart);
         lineChart = view.findViewById(R.id.reusable_line_chart);
 
+        deviceID = args.getString(ARG_DEVICE_ID);
+
         ChartType chartType = ChartType.values()[args.getInt(ARG_CHART_TYPE)];
         if(chartType == ChartType.PieChart) {
             pieChart.setVisibility(View.VISIBLE);
             chartDataType = ChartDataType.values()[args.getInt(ARG_PIE_CHART)];
-            charts.setupPieChart(pieChart, android.R.color.darker_gray);
+            charts.setupPieChart(pieChart, Color.WHITE);
         }
         else if(chartType == ChartType.LineChart){
             lineChart.setVisibility(View.VISIBLE);
@@ -87,7 +92,7 @@ public class ChartFragment extends Fragment {
                 case Spo:
                     yAxis_max = 100f;
                     yaxis_min = 75f;
-                    color = android.R.color.primary_text_dark;
+                    color = android.R.color.secondary_text_light;
                     break;
                 case Temperature:
                     yAxis_max = 110f;
@@ -107,15 +112,21 @@ public class ChartFragment extends Fragment {
             }
             charts.setupLineChart(lineChart, Color.TRANSPARENT,11f,color,yAxis_max,yaxis_min);
         }
+
         globalData = new ViewModelProvider(requireActivity()).get(GlobalData.class);
         globalData.getIsInit().observe(requireActivity(),isInit->{
             if(isInit){
                 globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
-                    all_readings_sorted = sortedReadings;
-                    if(chartType == ChartType.PieChart)
-                        populatePieChart();
-                    else if(chartType == ChartType.LineChart)
-                        populateLineChart();
+                    if(deviceID == null)
+                        all_readings_sorted = sortedReadings;
+                    else
+                        all_readings_sorted = globalData.getDeviceReadingsSorted(deviceID);
+                    if(all_readings_sorted.size() > 0) {
+                        if (chartType == ChartType.PieChart)
+                            populatePieChart();
+                        else if (chartType == ChartType.LineChart)
+                            populateLineChart();
+                    }
                 });
             }
         });
@@ -128,13 +139,13 @@ public class ChartFragment extends Fragment {
         charts.extract_reading_history(all_readings_sorted,oxygen_entries,temperature_entries,heartrate_entries);
         switch (chartDataType){
             case Spo:
-                charts.populatelinechart(lineChart,oxygen_entries,"Oxygen",Color.CYAN,Color.BLACK);
+                charts.populatelinechart(lineChart,oxygen_entries,"Oxygen",Color.GREEN,Color.WHITE);
                 break;
             case Temperature:
-                charts.populatelinechart(lineChart,temperature_entries,"Temperature",Color.BLUE,Color.BLACK);
+                charts.populatelinechart(lineChart,temperature_entries,"Temperature",Color.BLUE,Color.WHITE);
                 break;
             case HeartRate:
-                charts.populatelinechart(lineChart,heartrate_entries,"Heart Rate",Color.MAGENTA,Color.BLACK);
+                charts.populatelinechart(lineChart,heartrate_entries,"Heart Rate",Color.RED,Color.WHITE);
                 break;
         }
 
@@ -153,27 +164,28 @@ public class ChartFragment extends Fragment {
         switch (chartDataType) {
             case Company:
                 pie_chart_entries.add(new PieEntry(((float) (charts.green_band) / total_reads) * 100f, "Healthy"));
-                pie_chart_entries.add(new PieEntry(((float) (charts.yellow_band) / total_reads) * 100f, "Unfit"));
                 pie_chart_entries.add(new PieEntry(((float) (charts.orange_band) / total_reads) * 100f, "Ill"));
+                pie_chart_entries.add(new PieEntry(((float) (charts.yellow_band) / total_reads) * 100f, "Unfit"));
                 pie_chart_entries.add(new PieEntry(((float) (charts.red_band) / total_reads) * 100f, "Dead"));
+
                 label = "Company Health";
                 break;
 
             case Spo:
                 pie_chart_entries.add(new PieEntry(((float) (total_reads - charts.bad_oxy_count) / total_reads) * 100f, "Healthy"));
-                pie_chart_entries.add(new PieEntry(((float) (charts.bad_oxy_count) / total_reads) * 100f, " Unhealthy"));
+                pie_chart_entries.add(new PieEntry(((float) (charts.bad_oxy_count) / total_reads) * 100f, "Unhealthy"));
                 label = "SPO2";
                 break;
 
             case Temperature:
                 pie_chart_entries.add(new PieEntry(((float) (total_reads - charts.bad_temp_count) / total_reads) * 100f, "Healthy"));
-                pie_chart_entries.add(new PieEntry(((float) (charts.bad_temp_count) / total_reads) * 100f, " Unhealthy"));
+                pie_chart_entries.add(new PieEntry(((float) (charts.bad_temp_count) / total_reads) * 100f, "Unhealthy"));
                 label = "Temperature";
                 break;
 
             case HeartRate:
                 pie_chart_entries.add(new PieEntry(((float) (total_reads - charts.bad_hr_count) / total_reads) * 100f, "Healthy"));
-                pie_chart_entries.add(new PieEntry(((float) (charts.bad_hr_count) / total_reads) * 100f, " Unhealthy"));
+                pie_chart_entries.add(new PieEntry(((float) (charts.bad_hr_count) / total_reads) * 100f, "Unhealthy"));
                 label = "Heart Rate";
                 break;
 
@@ -181,6 +193,6 @@ public class ChartFragment extends Fragment {
                 break;
         }
 
-        charts.populatepiechart(pieChart,pie_chart_entries,label, android.R.color.black);
+        charts.populatepiechart(pieChart,pie_chart_entries,label, Color.BLUE);
     }
 }
