@@ -30,19 +30,20 @@
         <activity
             android:name=".SignUpActivity"
             android:noHistory="true">
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
 
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
 
-<!--                <data-->
-<!--                    android:host="nirogindia.page.link"-->
-<!--                    android:scheme="https" />-->
-<!--            </intent-filter>-->
+                <data
+                    android:host="nirogindia.page.link"
+                    android:scheme="https" />
+            </intent-filter>
         </activity>
         <activity android:name=".LoginActivity" />
         <activity android:name=".MainActivity">
+<!--            android:launchMode="standard">-->
             <nav-graph android:value="@navigation/navigation_graph" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

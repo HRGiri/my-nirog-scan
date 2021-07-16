@@ -205,8 +205,10 @@ public class HomeFragment extends Fragment {
                 });
                 globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
                     all_readings_sorted = sortedReadings;
-                    update_top_table();
-                    populate_daily_visit_chart();
+                    if(all_readings_sorted.size() > 0) {
+                        update_top_table();
+                        populate_daily_visit_chart();
+                    }
                 });
             }
             else {
@@ -249,11 +251,12 @@ public class HomeFragment extends Fragment {
 //                                        Intent intent = new Intent(getContext(),
 //                                                SignUpActivity.class);
 //                                        startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
-                                        HomeFragmentDirections.ActionHomeFragmentToSignUpFragment action =
-                                                HomeFragmentDirections
-                                                        .actionHomeFragmentToSignUpFragment();
-                                        action.setIsDeepLink(false);
-                                        Navigation.findNavController(getActivity(),R.id.main_activity_nav_host).navigate(action);
+//                                        HomeFragmentDirections.ActionHomeFragmentToSignUpFragment action =
+//                                                HomeFragmentDirections
+//                                                        .actionHomeFragmentToSignUpFragment();
+//                                        action.setIsDeepLink(false);
+                                        Navigation.findNavController(getActivity(),R.id.main_activity_nav_host)
+                                                .navigate(HomeFragmentDirections.actionHomeFragmentToSignUpActivity());
                                     }
                                 } else  {
                                     Log.d(TAG,"Error getting Data : ", task.getException());

@@ -158,7 +158,7 @@ public class SignUpFragment extends Fragment {
 //                        HomeFragmentDirections
 //                                .actionHomeFragmentToSignUpFragment();
 
-                Navigation.findNavController(getActivity(),R.id.main_activity_nav_host).navigate(SignUpFragmentDirections.actionSignUpFragmentToHomeFragment());
+//                Navigation.findNavController(getActivity(),R.id.main_activity_nav_host).navigate(SignUpFragmentDirections.actionSignUpFragmentToHomeFragment());
 //                Intent intent = new Intent(SignUpActivity.this,
 //                        MainActivity.class);
 //                startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
@@ -228,7 +228,7 @@ public class SignUpFragment extends Fragment {
                                         Log.d(TAG, "Found it");
                                         createFCMtoken();
                                         //Jump to Main Page- Dashboard
-                                        Navigation.findNavController(getActivity(),R.id.main_activity_nav_host).navigate(SignUpFragmentDirections.actionSignUpFragmentToHomeFragment());
+//                                        Navigation.findNavController(getActivity(),R.id.main_activity_nav_host).navigate(SignUpFragmentDirections.actionSignUpFragmentToHomeFragment());
 //                                        Intent intent = new Intent(getContext(),
 //                                                MainActivity.class);
 //                                        startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));

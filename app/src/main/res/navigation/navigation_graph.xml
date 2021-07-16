@@ -9,15 +9,11 @@
         android:name="com.example.mynirogscan.HomeFragment"
         android:label="My NirogScan">
         <action
-            android:id="@+id/action_homeFragment_to_signUpFragment"
-            app:destination="@id/signUpFragment">
-            <argument
-                android:name="isDeepLink"
-                android:defaultValue="false" />
-        </action>
-        <action
             android:id="@+id/action_homeFragment_to_readingsTableFragment"
             app:destination="@id/readingsTableFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_signUpActivity"
+            app:destination="@id/signUpActivity" />
     </fragment>
     <fragment
         android:id="@+id/addDeviceFragment"
@@ -46,9 +42,6 @@
             android:id="@+id/deepLink"
             app:action="ACTION_VIEW"
             app:uri="nirogindia.page.link" />
-        <action
-            android:id="@+id/action_signUpFragment_to_homeFragment"
-            app:destination="@id/homeFragment" />
     </fragment>
     <fragment
         android:id="@+id/devicesScreen"
@@ -79,4 +72,9 @@
             app:destination="@id/homeFragment"
             app:launchSingleTop="true" />
     </fragment>
+    <activity
+        android:id="@+id/signUpActivity"
+        android:name="com.example.mynirogscan.SignUpActivity"
+        android:label="activity_sign_up"
+        tools:layout="@layout/activity_sign_up" />
 </navigation>
