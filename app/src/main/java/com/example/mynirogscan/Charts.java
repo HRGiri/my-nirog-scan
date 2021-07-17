@@ -193,11 +193,12 @@ public class Charts {
         lineChart.animateX(1500);
 
 
-        xAxis.setTextSize(text_size);
-        xAxis.setTextColor(txt_color);
+//        xAxis.setTextSize(text_size);
+//        xAxis.setTextColor(txt_color);
         xAxis.setDrawGridLines(false);
         xAxis.setDrawAxisLine(false);
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+
 
 
         lineChart.getAxisRight().setEnabled(false);

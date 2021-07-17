@@ -284,7 +284,7 @@ public class GlobalData extends ViewModel {
     }
 
     public Map<Number,Map<String,Number>> getDeviceReadingsSorted(String deviceID){
-        Map<Number,Map<String,Number>> deviceReadings = new HashMap<>();
+        Map<Number,Map<String,Number>> deviceReadings = new TreeMap<Number,Map<String,Number>>().descendingMap();
         for(Number key : all_readings_sorted.keySet()){
             if(String.format("" + all_readings_sorted.get(key).get("uuid")).equals(deviceID))
                 deviceReadings.put(key,all_readings_sorted.get(key));
