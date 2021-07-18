@@ -20,6 +20,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
 import com.google.common.collect.Iterables;
@@ -29,6 +31,8 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -43,6 +47,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -50,9 +55,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.TimeZone;
+import java.util.TreeMap;
 
 import static android.app.Activity.RESULT_OK;
 import static com.example.mynirogscan.Constants.CREATED_FIELD_NAME;
+import static com.example.mynirogscan.Constants.DEVICE_ID_FIELD_NAME;
+import static com.example.mynirogscan.Constants.READINGS_DOCUMENT_NAME;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -68,7 +76,8 @@ public class ReadingsTableFragment extends Fragment {
     private ArrayList<Map<String,Number>> readings = new ArrayList<>();
     private Button generateCSVButton;
     String fileName;
-
+    boolean dataFetched = false;
+    ArrayList<String> device_id_list;
     public ReadingsTableFragment() {
         // Required empty public constructor
     }
@@ -104,7 +113,6 @@ public class ReadingsTableFragment extends Fragment {
                 launchDatePicker();
             }
         });
-
         globalData = new ViewModelProvider(requireActivity()).get(GlobalData.class);
         globalData.getIsInit().observe(requireActivity(),isInit->{
             if(isInit){
@@ -122,12 +130,12 @@ public class ReadingsTableFragment extends Fragment {
                     });
                 }else{
                     globalData.getAllReadingsSorted().observe(requireActivity(), sortedReadings -> {
-                        Map<Number, Map<String, Number>> devieSortedReadings = globalData.getDeviceReadingsSorted(deviceId);
+                        Map<Number, Map<String, Number>> deviceSortedReadings = globalData.getDeviceReadingsSorted(deviceId);
                         readings = new ArrayList<>();
-                        for (Number timestamp : devieSortedReadings.keySet()) {
+                        for (Number timestamp : deviceSortedReadings.keySet()) {
                             Map<String, Number> map = new HashMap<>();
                             map.put("timestamp", timestamp);
-                            map.putAll(sortedReadings.get(timestamp));
+                            map.putAll(deviceSortedReadings.get(timestamp));
                             readings.add(map);
                         }
                         ReadingsAdapter readingsAdapter = new ReadingsAdapter(readings);
@@ -153,15 +161,18 @@ public class ReadingsTableFragment extends Fragment {
             globalData.getGlobalDeviceReadings().observe(requireActivity(),deviceReadings->{
                 // Check if the timestamp exists in current document
                 boolean toFetch = false;
+                Long created = 0l;
+                device_id_list = new ArrayList<>();
                 for(DocumentSnapshot curr_doc : deviceReadings){
-                    Long created = Long.decode(String.valueOf(curr_doc.get(CREATED_FIELD_NAME)));
+                    created = Long.decode(String.valueOf(curr_doc.get(CREATED_FIELD_NAME)));
+                    device_id_list.add(String.valueOf(curr_doc.get(DEVICE_ID_FIELD_NAME)));
                     if (created > selection.first){
                         toFetch = true;
                     }
                 }
                 if(toFetch){
                     // Fetch readings matching the time period
-                    getDateRangeReadings();
+                    getDateRangeReadings(selection.first,selection.second,created);
                     Log.d(TAG,"Need to fetch more data");
                 }
                 try {
@@ -174,20 +185,41 @@ public class ReadingsTableFragment extends Fragment {
         dateRangePicker.show(getParentFragmentManager(),DATE_PICKER_TAG);
     }
 
-    private void getDateRangeReadings() {
+    private void getDateRangeReadings(Long startDate, Long endDate, Long currDocCreated) {
         FirebaseFirestore firestore = FirebaseFirestore.getInstance();
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         DocumentReference user_document_ref = firestore.collection("users")
                 .document(currentUser.getUid());
-//        user_document_ref.collection(READINGS_DOCUMENT_NAME)
-//                .whereGreaterThan(CREATED_FIELD_NAME,)
+        user_document_ref.collection("Readings")
+                .whereGreaterThanOrEqualTo(CREATED_FIELD_NAME,startDate)
+                .whereLessThanOrEqualTo(CREATED_FIELD_NAME,endDate)
+                .whereNotEqualTo(CREATED_FIELD_NAME,currDocCreated)
+                .whereIn(DEVICE_ID_FIELD_NAME,device_id_list)
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if(task.isSuccessful()){
+                            for (QueryDocumentSnapshot document : task.getResult()){
+                                Map<Number,Map<String,Number>> doc_readings = new TreeMap<Number,Map<String,Number>>((Map<Number,Map<String,Number>>)document.getData().get(READINGS_DOCUMENT_NAME)).descendingMap();
+                                for (Number timestamp : doc_readings.keySet()) {
+                                    Map<String, Number> map = new HashMap<>();
+                                    map.put("timestamp", timestamp);
+                                    map.putAll(doc_readings.get(timestamp));
+                                    readings.add(map);
+                                }
+                            }
+                        }
+                    }
+                });
     }
 
 
     private void generateCSV() throws IOException {
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yy HH:mm");
         Date date = new Date((long) Calendar.getInstance().getTimeInMillis());
-        fileName = "readings" +date + ".csv";
+        sdf.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
+        fileName = "readings " +sdf.format(date) + ".csv";
         createFile(getContext().getFilesDir().toURI(),fileName);
 
 
