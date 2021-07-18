@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.provider.DocumentsContract;
+import android.text.style.TabStopSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +23,7 @@ import android.widget.Button;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
 import com.google.common.collect.Iterables;
+import com.google.common.primitives.Bytes;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -30,17 +32,24 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.TimeZone;
 
 import static android.app.Activity.RESULT_OK;
 import static com.example.mynirogscan.Constants.CREATED_FIELD_NAME;
@@ -58,6 +67,7 @@ public class ReadingsTableFragment extends Fragment {
     private GlobalData globalData;
     private ArrayList<Map<String,Number>> readings = new ArrayList<>();
     private Button generateCSVButton;
+    String fileName;
 
     public ReadingsTableFragment() {
         // Required empty public constructor
@@ -123,7 +133,7 @@ public class ReadingsTableFragment extends Fragment {
                 )
                 .build();
         dateRangePicker.addOnPositiveButtonClickListener((MaterialPickerOnPositiveButtonClickListener<Pair<Long,Long>>) selection -> {
-            Log.d(TAG,selection.toString());
+
 
             globalData.getGlobalDeviceReadings().observe(requireActivity(),deviceReadings->{
                 // Check if the timestamp exists in current document
@@ -136,9 +146,14 @@ public class ReadingsTableFragment extends Fragment {
                 }
                 if(toFetch){
                     // Fetch readings matching the time period
-//                    getDateRangeReadings();
+                    getDateRangeReadings();
+                    Log.d(TAG,"Need to fetch more data");
                 }
-                generateCSV();
+                try {
+                    generateCSV();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             });
         });
         dateRangePicker.show(getParentFragmentManager(),DATE_PICKER_TAG);
@@ -154,29 +169,34 @@ public class ReadingsTableFragment extends Fragment {
     }
 
 
-    private void generateCSV() {
-        String content = generateCsvContent(readings);
-        Log.d(TAG,content);
-        String fileName = "readings" + Calendar.getInstance().getTimeInMillis() + ".csv";
+    private void generateCSV() throws IOException {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yy HH:mm");
+        Date date = new Date((long) Calendar.getInstance().getTimeInMillis());
+        fileName = "readings" +date + ".csv";
         createFile(getContext().getFilesDir().toURI(),fileName);
-//            File file = new File(getContext().getFilesDir(),fileName +".csv");
-//            // if file doesnt exists, then create it
-//            if (!file.exists()) file.createNewFile();
-//
-//            FileWriter fw = new FileWriter(file.getAbsoluteFile());
-//            BufferedWriter bw = new BufferedWriter(fw);
-//            bw.write(content);
-//            bw.close();
+
 
     }
 
     private String generateCsvContent(ArrayList<Map<String,Number>> readingsList){
         String content = "";
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yy HH:mm");
+        StringJoiner stringJoiner = new StringJoiner(",");
+        stringJoiner.add("Timestamp");
+        stringJoiner.add("uuid");
+        stringJoiner.add("temperature");
+        stringJoiner.add("oxygen");
+        stringJoiner.add("heartrate");
+        content += stringJoiner.toString() + "\n";
         for(Map<String,Number> map:readingsList){
-            StringJoiner stringJoiner = new StringJoiner(",");
-            for(Map.Entry<String,Number> entry : map.entrySet()){
-                stringJoiner.add("" + entry.getValue());
-            }
+            stringJoiner = new StringJoiner(",");
+            Date date = new Date((long) map.get("timestamp"));
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
+            stringJoiner.add("" + sdf.format(date));
+            stringJoiner.add("" + map.get("uuid"));
+            stringJoiner.add("" + map.get("temperature"));
+            stringJoiner.add("" + map.get("oxygen"));
+            stringJoiner.add("" + map.get("heartrate"));
             content += stringJoiner.toString() + "\n";
         }
         return content;
@@ -188,7 +208,7 @@ public class ReadingsTableFragment extends Fragment {
     private void createFile(URI pickerInitialUri, String filename) {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("text/plain");
+        intent.setType("text/csv");
         intent.putExtra(Intent.EXTRA_TITLE, filename);
 
         // Optionally, specify a URI for the directory that should be opened in
@@ -204,6 +224,19 @@ public class ReadingsTableFragment extends Fragment {
         switch (requestCode){
             case CREATE_FILE:
                 if(resultCode == RESULT_OK){
+                    try {
+                        String content = generateCsvContent(readings);
+                        Log.d(TAG,content);
+                        FileDescriptor fd = requireActivity().getContentResolver().openFileDescriptor(data.getData(),"w").getFileDescriptor();
+                        FileOutputStream fos = new FileOutputStream(fd);
+                        fos.write((content).getBytes(StandardCharsets.UTF_8));
+                        fos.close();
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
                 }
         }
     }
