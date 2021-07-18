@@ -111,8 +111,10 @@ public class DeviceFragment extends Fragment {
             @Override
             public void onClick(View view) {
 //                launchDatePicker();
+                DeviceFragmentDirections.ActionDeviceFragmentToReadingsTableFragment2 action = DeviceFragmentDirections.actionDeviceFragmentToReadingsTableFragment2();
+                action.setDEVICEID(deviceId);
                 Navigation.findNavController(requireActivity(),R.id.devices_nav_host)
-                        .navigate(DeviceFragmentDirections.actionDeviceFragmentToReadingsTableFragment2());
+                        .navigate(action);
             }
         });
 

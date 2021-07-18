@@ -96,7 +96,7 @@ public class ReadingsTableFragment extends Fragment {
 
         recyclerView = view.findViewById(R.id.readings_rec_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-
+        String deviceId = ReadingsTableFragmentArgs.fromBundle(getArguments()).getDEVICEID();
         generateCSVButton = view.findViewById(R.id.btn_generate_csv);
         generateCSVButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -108,17 +108,32 @@ public class ReadingsTableFragment extends Fragment {
         globalData = new ViewModelProvider(requireActivity()).get(GlobalData.class);
         globalData.getIsInit().observe(requireActivity(),isInit->{
             if(isInit){
-                globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
-                    readings = new ArrayList<>();
-                    for (Number timestamp : sortedReadings.keySet()) {
-                        Map<String, Number> map = new HashMap<>();
-                        map.put("timestamp", timestamp);
-                        map.putAll(sortedReadings.get(timestamp));
-                        readings.add(map);
-                    }
-                    ReadingsAdapter readingsAdapter = new ReadingsAdapter(readings);
-                    recyclerView.setAdapter(readingsAdapter);
-                });
+                if(deviceId == null) {
+                    globalData.getAllReadingsSorted().observe(requireActivity(), sortedReadings -> {
+                        readings = new ArrayList<>();
+                        for (Number timestamp : sortedReadings.keySet()) {
+                            Map<String, Number> map = new HashMap<>();
+                            map.put("timestamp", timestamp);
+                            map.putAll(sortedReadings.get(timestamp));
+                            readings.add(map);
+                        }
+                        ReadingsAdapter readingsAdapter = new ReadingsAdapter(readings);
+                        recyclerView.setAdapter(readingsAdapter);
+                    });
+                }else{
+                    globalData.getAllReadingsSorted().observe(requireActivity(), sortedReadings -> {
+                        Map<Number, Map<String, Number>> devieSortedReadings = globalData.getDeviceReadingsSorted(deviceId);
+                        readings = new ArrayList<>();
+                        for (Number timestamp : devieSortedReadings.keySet()) {
+                            Map<String, Number> map = new HashMap<>();
+                            map.put("timestamp", timestamp);
+                            map.putAll(sortedReadings.get(timestamp));
+                            readings.add(map);
+                        }
+                        ReadingsAdapter readingsAdapter = new ReadingsAdapter(readings);
+                        recyclerView.setAdapter(readingsAdapter);
+                    });
+                }
             }
         });
     }
