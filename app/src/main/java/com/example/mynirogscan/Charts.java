@@ -1,6 +1,7 @@
 package com.example.mynirogscan;
 
 import android.graphics.Color;
+import android.util.Log;
 import android.view.MotionEvent;
 
 import com.github.mikephil.charting.animation.Easing;
@@ -63,16 +64,16 @@ public class Charts {
     public void extract_reading_history(Map<Number,Map<String,Number>> readings, List<Entry> oxygen_entries ,List<Entry> temperature_entries ,List<Entry> heartrate_entries){
 
             timestamp_string = new HashMap<Float, String>();
-            float counter = 0f;
-            Set<Number> timestamp_keyset = readings.keySet();
-            Number time_diff = (long) timestamp_keyset.toArray()[0] - (long) timestamp_keyset.toArray()[49];
+            Object[] timestamp_keyset = readings.keySet().toArray();
+            Number time_diff =  (long)timestamp_keyset[0] - (long)timestamp_keyset[49];
             SimpleDateFormat dateformat;
             if ((long) time_diff < (long) (3600 * 24 * 1000)) {
                 dateformat = new SimpleDateFormat("HH:mm");
             } else {
                 dateformat = new SimpleDateFormat("dd-MM HH:mm");
             }
-            for (Number timestamp : timestamp_keyset) {
+            for (float counter = 0f;counter < 50f;counter++) {
+                Number timestamp = (Number)timestamp_keyset[49-(int)counter];
                 Date date = new Date((long) timestamp);
                 dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
                 String xaxis_timestamp = dateformat.format(date);
@@ -81,10 +82,6 @@ public class Charts {
                 oxygen_entries.add(new Entry((float) counter, readings.get(timestamp).get("oxygen").floatValue()));
                 temperature_entries.add(new Entry((float) counter, readings.get(timestamp).get("temperature").floatValue()));
                 heartrate_entries.add(new Entry((float) counter, readings.get(timestamp).get("heartrate").floatValue()));
-                counter = counter + 1f;
-                if (counter > 50f) {
-                    break;
-                }
             }
     }
 
@@ -282,13 +279,27 @@ public class Charts {
         l.setEnabled(false);
     }
 
-    public void populateBarChart(BarChart barChart, List<BarEntry> barentries ,String label){
+    public void populateBarChart(BarChart barChart, List<BarEntry> barentries ,String label,Map <Float,String> xvalue){
 
         BarDataSet data_set = new BarDataSet(barentries,label);
         data_set.setColors(colorArray);
         data_set.setValueTextColor(Color.BLUE);
+
+        Log.d("CHARTS","x value : "+xvalue.toString());
+        XAxis xAxis = barChart.getXAxis();
+        ValueFormatter formatter = new ValueFormatter() {
+            @Override
+            public String getAxisLabel(float value, AxisBase axis) {
+                return xvalue.get(value);
+            }
+        };
+        xAxis.setLabelCount(xvalue.size());
+        xAxis.setValueFormatter(formatter);
+
         BarData data = new BarData(data_set);
-        data.setBarWidth(0.9f);
+        data.setBarWidth(0.3f);
+        barChart.setVisibleXRangeMaximum(50);
+        barChart.setFitBars(true);
         barChart.setData(data);
         barChart.invalidate();
     }
@@ -311,7 +322,7 @@ public class Charts {
                 return timestamp_string.get(value);
             }
         };
-
+//        lineChart.setVisibleXRange(0f,50f);
         XAxis xAxis = lineChart.getXAxis();
         xAxis.setGranularity(1f);
         xAxis.setValueFormatter(formatter);
