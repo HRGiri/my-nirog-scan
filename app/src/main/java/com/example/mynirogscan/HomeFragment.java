@@ -22,7 +22,9 @@ import com.example.mynirogscan.ChartStateAdapter.ChartType;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
 import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.AxisBase;
 import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -374,12 +376,14 @@ public class HomeFragment extends Fragment {
         Charts bar_chart_obj = new Charts();
         Map<String, float[]> bar_entry = bar_chart_obj.calculate_daily_healthy_people(all_readings_sorted);
         List<BarEntry> entries = new ArrayList<>();
+        Map <Float,String> xvalue = new HashMap<>();
         float count = 0f;
         for(String day : bar_entry.keySet()){
             entries.add(new BarEntry(count,bar_entry.get(day)));
+            xvalue.put(count,day);
             count = count + 1f;
         }
-        bar_chart_obj.populateBarChart(daily_visit_chart,entries,"Daily Record");
+        bar_chart_obj.populateBarChart(daily_visit_chart,entries,"Daily Record",xvalue);
     }
 
 
