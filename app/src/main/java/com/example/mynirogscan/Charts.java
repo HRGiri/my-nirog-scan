@@ -65,24 +65,29 @@ public class Charts {
 
             timestamp_string = new HashMap<Float, String>();
             Object[] timestamp_keyset = readings.keySet().toArray();
-            Number time_diff =  (long)timestamp_keyset[0] - (long)timestamp_keyset[49];
-            SimpleDateFormat dateformat;
-            if ((long) time_diff < (long) (3600 * 24 * 1000)) {
-                dateformat = new SimpleDateFormat("HH:mm");
-            } else {
-                dateformat = new SimpleDateFormat("dd-MM HH:mm");
-            }
-            for (float counter = 0f;counter < 50f;counter++) {
-                Number timestamp = (Number)timestamp_keyset[49-(int)counter];
-                Date date = new Date((long) timestamp);
-                dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
-                String xaxis_timestamp = dateformat.format(date);
+            int readings_length = readings.keySet().size();
+            if(readings_length > 0){
+                if(readings_length > 50) readings_length = 49;
+                Number time_diff =  (long)timestamp_keyset[0] - (long)timestamp_keyset[readings_length];
+                SimpleDateFormat dateformat;
+                if ((long) time_diff < (long) (3600 * 24 * 1000)) {
+                    dateformat = new SimpleDateFormat("HH:mm");
+                } else {
+                    dateformat = new SimpleDateFormat("dd-MM HH:mm");
+                }
+                for (float counter = 0f;counter < 50f;counter++) {
+                    Number timestamp = (Number)timestamp_keyset[readings_length-(int)counter];
+                    Date date = new Date((long) timestamp);
+                    dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
+                    String xaxis_timestamp = dateformat.format(date);
 
-                timestamp_string.put((float) counter, xaxis_timestamp);
-                oxygen_entries.add(new Entry((float) counter, readings.get(timestamp).get("oxygen").floatValue()));
-                temperature_entries.add(new Entry((float) counter, readings.get(timestamp).get("temperature").floatValue()));
-                heartrate_entries.add(new Entry((float) counter, readings.get(timestamp).get("heartrate").floatValue()));
+                    timestamp_string.put((float) counter, xaxis_timestamp);
+                    oxygen_entries.add(new Entry((float) counter, readings.get(timestamp).get("oxygen").floatValue()));
+                    temperature_entries.add(new Entry((float) counter, readings.get(timestamp).get("temperature").floatValue()));
+                    heartrate_entries.add(new Entry((float) counter, readings.get(timestamp).get("heartrate").floatValue()));
+                }
             }
+
     }
 
     public int check_threshold(float o2val,float tempval, float hrval){
@@ -276,7 +281,7 @@ public class Charts {
         l.setFormSize(9f);
         l.setTextSize(11f);
         l.setXEntrySpace(4f);
-        l.setEnabled(false);
+        l.setEnabled(true);
     }
 
     public void populateBarChart(BarChart barChart, List<BarEntry> barentries ,String label,Map <Float,String> xvalue){

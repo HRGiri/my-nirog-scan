@@ -137,16 +137,19 @@ public class ChartFragment extends Fragment {
         List<Entry> temperature_entries = new ArrayList<Entry>();
         List<Entry> heartrate_entries = new ArrayList<Entry>();
         charts.extract_reading_history(all_readings_sorted,oxygen_entries,temperature_entries,heartrate_entries);
-        switch (chartDataType){
-            case Spo:
-                charts.populatelinechart(lineChart,oxygen_entries,"Oxygen",Color.GREEN,Color.WHITE);
-                break;
-            case Temperature:
-                charts.populatelinechart(lineChart,temperature_entries,"Temperature",Color.BLUE,Color.WHITE);
-                break;
-            case HeartRate:
-                charts.populatelinechart(lineChart,heartrate_entries,"Heart Rate",Color.RED,Color.WHITE);
-                break;
+        if(!(oxygen_entries.isEmpty() || temperature_entries.isEmpty() || temperature_entries.isEmpty())) {
+
+            switch (chartDataType) {
+                case Spo:
+                    charts.populatelinechart(lineChart, oxygen_entries, "Oxygen", Color.GREEN, Color.WHITE);
+                    break;
+                case Temperature:
+                    charts.populatelinechart(lineChart, temperature_entries, "Temperature", Color.BLUE, Color.WHITE);
+                    break;
+                case HeartRate:
+                    charts.populatelinechart(lineChart, heartrate_entries, "Heart Rate", Color.RED, Color.WHITE);
+                    break;
+            }
         }
 
 
