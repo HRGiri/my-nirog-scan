@@ -3,7 +3,6 @@ package com.example.mynirogscan;
 import android.content.Intent;
 import android.os.Bundle;
 
-import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -29,6 +28,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -62,13 +62,15 @@ public class HomeFragment extends Fragment {
     private static final int RC_SIGN_IN = 1;
     private static final String DATE_PICKER_TAG = "com.example.mynirogscan.GenerateReportDatePicker";
     public static final String DEVICE_ID_EXTRA = "com.example.mynirogscan.DEVICE_ID";
-    private String token;
+    private String fcmToken;
     private TextView info;
     private TextView total_visits_value;
     private TextView oxygen_value;
     private TextView heartrate_value;
     private TextView temperature_value;
     private TextView lastReadValue;
+    private TextView noDeviceInfo;
+    private FloatingActionButton fabAddDevice;
     private Button viewReadingsButton;
     private BarChart daily_visit_chart;
     public FirebaseAuth mAuth;
@@ -87,20 +89,13 @@ public class HomeFragment extends Fragment {
     private GlobalData globalData;
     private ChartStateAdapter lineChartAdapter;
     private ViewPager2 lineViewPager;
-
+    private View scrollview;
 
 
     public HomeFragment() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @return A new instance of fragment HomeFragment.
-     */
-    // TODO: Rename and change types and number of parameters
     public static HomeFragment newInstance() {
         return new HomeFragment();
     }
@@ -128,7 +123,7 @@ public class HomeFragment extends Fragment {
             @Override
             public void onClick(View view) {
 //                launchDatePicker();
-                Navigation.findNavController(getActivity(),R.id.main_activity_nav_host)
+                Navigation.findNavController(requireActivity(),R.id.main_activity_nav_host)
                         .navigate(HomeFragmentDirections.actionHomeFragmentToReadingsTableFragment());
             }
         });
@@ -138,7 +133,24 @@ public class HomeFragment extends Fragment {
         temperature_value = view.findViewById(R.id.tv_temp_val);
         heartrate_value = view.findViewById(R.id.tv_hr_val);
         lastReadValue = view.findViewById(R.id.tv_last_read);
+        noDeviceInfo = view.findViewById(R.id.tv_no_device_info);
+        fabAddDevice = view.findViewById(R.id.floatingActionButton);
+        scrollview = view.findViewById(R.id.scrollView2);
 
+        scrollview.setVisibility(View.GONE);
+        noDeviceInfo.setVisibility(View.INVISIBLE);
+        fabAddDevice.setVisibility(View.GONE);
+
+        fabAddDevice.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                HomeFragmentDirections.ActionHomeFragmentToAddDeviceFragment action = HomeFragmentDirections.actionHomeFragmentToAddDeviceFragment();
+                action.setDEVICEID(generateDeviceId());
+                action.setFCMToken(String.valueOf(userData.get("FCMToken")));
+                Navigation.findNavController(requireActivity(),R.id.main_activity_nav_host)
+                        .navigate(action);
+            }
+        });
         /*Daily visit chart*/
         daily_visit_chart = view.findViewById(R.id.visit_chart);
 
@@ -204,6 +216,18 @@ public class HomeFragment extends Fragment {
                     userData = usersData;
                     currentUser = mAuth.getCurrentUser();
                     info.setText("Hello, " + currentUser.getDisplayName());
+                });
+                globalData.getGlobalDeviceData().observe(requireActivity(),deviceData->{
+                    if(deviceData.size()==0){
+                        noDeviceInfo.setVisibility(View.VISIBLE);
+                        fabAddDevice.setVisibility(View.VISIBLE);
+                        scrollview.setVisibility(View.GONE);
+                    }
+                    else {
+                        noDeviceInfo.setVisibility(View.INVISIBLE);
+                        fabAddDevice.setVisibility(View.GONE);
+                        scrollview.setVisibility(View.VISIBLE);
+                    }
                 });
                 globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
                     all_readings_sorted = sortedReadings;
@@ -287,8 +311,8 @@ public class HomeFragment extends Fragment {
                         }
 
                         // Get new FCM registration token
-                        token = task.getResult();
-                        Log.d(TAG,"Token created: "+token);
+                        fcmToken = task.getResult();
+                        Log.d(TAG,"Token created: "+ fcmToken);
                         updateFCMToken();
                     }
                 });
@@ -297,7 +321,7 @@ public class HomeFragment extends Fragment {
     //Update FCM Token in DataBase.
     private void updateFCMToken(){
         Map<String, String> user = new HashMap<>();
-        user.put("FCMToken", token);
+        user.put("FCMToken", fcmToken);
         Log.d(TAG, "FCM token s! + "+user.toString());
         FirebaseUser curruser = FirebaseAuth.getInstance().getCurrentUser();
         firestore.collection("users").document(curruser.getUid())
@@ -305,7 +329,7 @@ public class HomeFragment extends Fragment {
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void unused) {
-                        Log.d(TAG, "FCM token updated! + "+token);
+                        Log.d(TAG, "FCM token updated! + "+ fcmToken);
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {

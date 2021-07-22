@@ -2,9 +2,9 @@ package com.example.mynirogscan;
 
 import android.os.Bundle;
 
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,23 +16,33 @@ import android.widget.EditText;
  * Use the {@link DisplayNameFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class DisplayNameFragment extends Fragment {
+public class DisplayNameFragment extends DialogFragment {
 
-
-    public DisplayNameFragment() {
-        // Required empty public constructor
+    public interface DisplayNameDialogListener {
+        void onSubmitDisplayName(DialogFragment dialog);
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment DisplayNameFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static DisplayNameFragment newInstance(String param1, String param2) {
+    // Use this instance of the interface to deliver action events
+    DisplayNameDialogListener listener;
+
+    public static final String TAG = "DisplayNameFragment";
+    AddDeviceFragment parentFragment;
+
+    public DisplayNameFragment(){
+        // Required empty constructor
+    }
+    public DisplayNameFragment(Fragment parent) {
+        parentFragment = (AddDeviceFragment) parent;
+        // Verify that the host activity implements the callback interface
+        try {
+            // Instantiate the NoticeDialogListener so we can send events to the host
+            listener = (DisplayNameDialogListener) parent;
+        } catch (ClassCastException e) {
+            // The activity doesn't implement the interface, throw exception
+            throw new ClassCastException("Must implement SettingsDialogListener");
+        }
+    }
+    public static DisplayNameFragment newInstance() {
         return new DisplayNameFragment();
     }
 
@@ -51,11 +61,12 @@ public class DisplayNameFragment extends Fragment {
         displayNameButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                AddDeviceActivity activity = (AddDeviceActivity) getActivity();
-                if(activity != null) {
-                    activity.displayName = nameInput.getText().toString().trim();
+                if(parentFragment != null) {
+                    parentFragment.displayName = nameInput.getText().toString().trim();
                 }
-                getParentFragmentManager().beginTransaction().remove(DisplayNameFragment.this).commit();
+                listener.onSubmitDisplayName(DisplayNameFragment.this);
+                dismiss();
+//                getParentFragmentManager().beginTransaction().remove(DisplayNameFragment.this).commit();
             }
         });
         return view;

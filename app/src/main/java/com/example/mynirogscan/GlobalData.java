@@ -155,9 +155,6 @@ public class GlobalData extends ViewModel {
                         }
                         if(snapshots!=null) {
                             deviceReadingsDocuments = snapshots.getDocuments();
-                            for(DocumentSnapshot doc: deviceReadingsDocuments){
-
-                            }
                             globalDeviceReadings.setValue(deviceReadingsDocuments);
                             extract_data_from_document();
                         }
@@ -268,6 +265,8 @@ public class GlobalData extends ViewModel {
         Map<Number, Map<String,Number>> all_readings = new HashMap<Number,Map<String,Number>>();
         for(DocumentSnapshot curr_doc : deviceReadingsDocuments){
             Map<String,Map<String,Number>> curr_device_readings = (Map<String,Map<String,Number>>)curr_doc.get("previous_readings");
+            if(curr_device_readings == null)
+                return;
             for(String key: curr_device_readings.keySet())
             {
                 Long int_key = Long.parseLong(key);

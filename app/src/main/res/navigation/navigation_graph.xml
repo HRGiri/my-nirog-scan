@@ -14,6 +14,10 @@
         <action
             android:id="@+id/action_homeFragment_to_signUpActivity"
             app:destination="@id/signUpActivity" />
+        <action
+            android:id="@+id/action_homeFragment_to_addDeviceFragment"
+            app:destination="@id/addDeviceFragment"
+            app:launchSingleTop="true" />
     </fragment>
     <fragment
         android:id="@+id/addDeviceFragment"
@@ -54,7 +58,8 @@
             app:launchSingleTop="true" />
         <action
             android:id="@+id/action_devicesScreen_to_addDeviceFragment"
-            app:destination="@id/addDeviceFragment" />
+            app:destination="@id/addDeviceFragment"
+            app:launchSingleTop="true" />
     </fragment>
     <include app:graph="@navigation/device_nav_graph" />
     <fragment

@@ -6,7 +6,33 @@
     android:layout_height="match_parent"
     android:visibility="visible">
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/floatingActionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp"
+        android:clickable="true"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@android:drawable/ic_input_add" />
+
+    <TextView
+        android:id="@+id/tv_no_device_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="32dp"
+        android:layout_marginStart="32dp"
+        android:text="You have no Nirog Scan devices configured!\nClick the '+' button to add a device!"
+        android:textAlignment="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <ScrollView
+        android:id="@+id/scrollView2"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="visible"
@@ -99,12 +125,6 @@
                             tools:text="12th July, 2021 7:55 PM" />
                     </LinearLayout>
 
-                    <View
-                        android:id="@+id/divider"
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="?android:attr/listDivider" />
-
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
@@ -137,12 +157,6 @@
 
                         </LinearLayout>
 
-                        <View
-                            android:id="@+id/divider2"
-                            android:layout_width="1dp"
-                            android:layout_height="match_parent"
-                            android:background="?android:attr/listDivider" />
-
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
@@ -166,12 +180,6 @@
                                 tools:text="85 bpm" />
 
                         </LinearLayout>
-
-                        <View
-                            android:id="@+id/divider3"
-                            android:layout_width="1dp"
-                            android:layout_height="match_parent"
-                            android:background="?android:attr/listDivider" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -197,7 +205,25 @@
 
                         </LinearLayout>
 
+                        <View
+                            android:id="@+id/divider2"
+                            android:layout_width="1dp"
+                            android:layout_height="match_parent"
+                            android:background="?android:attr/listDivider" />
+
+                        <View
+                            android:id="@+id/divider3"
+                            android:layout_width="1dp"
+                            android:layout_height="match_parent"
+                            android:background="?android:attr/listDivider" />
+
                     </LinearLayout>
+
+                    <View
+                        android:id="@+id/divider"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="?android:attr/listDivider" />
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -230,48 +256,6 @@
                 </androidx.viewpager2.widget.ViewPager2>
             </FrameLayout>
 
-            <HorizontalScrollView
-                android:id="@+id/horizontalScrollView"
-                android:layout_width="match_parent"
-                android:layout_height="189dp"
-                android:layout_marginBottom="8dp"
-                android:layout_marginTop="40dp"
-                android:visibility="gone">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal">
-
-                    <com.github.mikephil.charting.charts.PieChart
-                        android:id="@+id/company_health_chart"
-                        android:layout_width="411dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1" />
-
-                    <com.github.mikephil.charting.charts.PieChart
-                        android:id="@+id/temperature_chart"
-                        android:layout_width="411dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1" />
-
-                    <com.github.mikephil.charting.charts.PieChart
-                        android:id="@+id/oxygen_chart"
-                        android:layout_width="411dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1">
-
-                    </com.github.mikephil.charting.charts.PieChart>
-
-                    <com.github.mikephil.charting.charts.PieChart
-                        android:id="@+id/heartrate_chart"
-                        android:layout_width="411dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1" />
-
-                </LinearLayout>
-            </HorizontalScrollView>
-
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
@@ -299,44 +283,6 @@
 
                 </androidx.viewpager2.widget.ViewPager2>
             </FrameLayout>
-
-            <HorizontalScrollView
-                android:id="@+id/horizontalScrollView2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="96dp"
-                android:layout_marginTop="24dp"
-                android:visibility="gone">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <com.github.mikephil.charting.charts.LineChart
-                        android:id="@+id/oxygen_reading_history_chart"
-                        android:layout_width="410dp"
-                        android:layout_height="240dp"
-                        android:layout_marginBottom="25dp"
-                        android:layout_marginTop="16dp" />
-
-
-                    <com.github.mikephil.charting.charts.LineChart
-                        android:id="@+id/temperature_reading_history_chart"
-                        android:layout_width="410dp"
-                        android:layout_height="240dp"
-                        android:layout_marginBottom="25dp"
-                        android:layout_marginTop="16dp" />
-
-                    <com.github.mikephil.charting.charts.LineChart
-                        android:id="@+id/heartrate_reading_history_chart"
-                        android:layout_width="410dp"
-                        android:layout_height="240dp"
-                        android:layout_marginBottom="25dp"
-                        android:layout_marginTop="16dp" />
-                </LinearLayout>
-
-            </HorizontalScrollView>
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"

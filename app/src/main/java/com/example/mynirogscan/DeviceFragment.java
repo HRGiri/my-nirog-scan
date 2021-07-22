@@ -79,6 +79,8 @@ public class DeviceFragment extends Fragment {
     private GlobalData globalData;
     private ChartStateAdapter lineChartAdapter;
     private ViewPager2 lineViewPager;
+    private TextView noDeviceInfo;
+    private View scrollview;
 
     public DeviceFragment() {
         // Required empty public constructor
@@ -125,6 +127,10 @@ public class DeviceFragment extends Fragment {
         temperature_value = view.findViewById(R.id.tv_temp_val);
         heartrate_value = view.findViewById(R.id.tv_hr_val);
         lastReadValue = view.findViewById(R.id.tv_last_read);
+        noDeviceInfo = view.findViewById(R.id.tv_no_device_info);
+        scrollview = view.findViewById(R.id.scrollView2);
+
+        noDeviceInfo.setVisibility(View.INVISIBLE);
 
         /*Daily visit chart*/
         daily_visit_chart = view.findViewById(R.id.visit_chart);
@@ -174,8 +180,14 @@ public class DeviceFragment extends Fragment {
                     globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
                         all_readings_sorted = globalData.getDeviceReadingsSorted(deviceId);
                         if(all_readings_sorted.size() > 0) {
+                            noDeviceInfo.setVisibility(View.INVISIBLE);
+                            scrollview.setVisibility(View.VISIBLE);
                             update_top_table();
                             populate_daily_visit_chart();
+                        }
+                        else {
+                            noDeviceInfo.setVisibility(View.VISIBLE);
+                            scrollview.setVisibility(View.GONE);
                         }
                     });
                 }

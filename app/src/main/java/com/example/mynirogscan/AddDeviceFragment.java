@@ -27,6 +27,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -48,21 +49,29 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.customview.widget.Openable;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.NavigationUI;
 
 import static com.example.mynirogscan.MainActivity.FIREBASE_TAG;
 
-public class AddDeviceFragment extends Fragment {
+public class AddDeviceFragment extends Fragment
+        implements DisplayNameFragment.DisplayNameDialogListener,
+        WiFiSelectFragment.WifiSelectDialogListener {
     private static final String BLE_TAG = "BLE";
 
     public static final String SERVICE_UUID = "000000bb-0000-1000-8000-00805f9b34fb";
@@ -106,13 +115,6 @@ public class AddDeviceFragment extends Fragment {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @return A new instance of fragment HomeFragment.
-     */
-    // TODO: Rename and change types and number of parameters
     public static AddDeviceFragment newInstance() {
         return new AddDeviceFragment();
     }
@@ -190,14 +192,16 @@ public class AddDeviceFragment extends Fragment {
                             tvInfo.setText("Please enter the password for " + deviceListCopy.get(position) + " to continue");
                             wifiList.setVisibility(View.INVISIBLE);
 
-                            fragmentManager = getFragmentManager();
-                            Bundle bundle = new Bundle();
-                            bundle.putString("ssid",deviceListCopy.get(position));
-                            fragmentManager.beginTransaction()
-                                    .setReorderingAllowed(true)
-                                    .add(R.id.fragmentContainerView, WiFiSelectFragment.class, bundle)
-                                    .commit();
-                            fragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks,false);
+                            DialogFragment newFragment = new WiFiSelectFragment(AddDeviceFragment.this,deviceListCopy.get(position));
+                            newFragment.show(getParentFragmentManager(), WiFiSelectFragment.FRAGMENT_TAG);
+//                            fragmentManager = getFragmentManager();
+//                            Bundle bundle = new Bundle();
+//                            bundle.putString("ssid",deviceListCopy.get(position));
+//                            fragmentManager.beginTransaction()
+//                                    .setReorderingAllowed(true)
+//                                    .add(R.id.fragmentContainerView, WiFiSelectFragment.class, bundle)
+//                                    .commit();
+//                            fragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks,false);
 
                         }
                     });
@@ -293,7 +297,7 @@ public class AddDeviceFragment extends Fragment {
     }
 
     private boolean isLocationPermissionGranted() {
-        return (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+        return (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED);
     }
 
@@ -307,7 +311,7 @@ public class AddDeviceFragment extends Fragment {
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         ActivityCompat.requestPermissions(
-                                getActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_ACCESS_FINE_LOCATION);
+                                requireActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_ACCESS_FINE_LOCATION);
                     }
                 });
         //Creating dialog box
@@ -323,90 +327,88 @@ public class AddDeviceFragment extends Fragment {
     }
 
     public void startBleScan(){
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!isLocationPermissionGranted()) {
-                requestLocationPermission();
-            } else {
-                isDeviceFound = false;
-                isBleScanning = false;
+        if (!isLocationPermissionGranted()) {
+            requestLocationPermission();
+        } else {
 
-                progressBar.setVisibility(View.VISIBLE);
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        tvInfo.setText("Searching for a Nirog Scan...");
-                    }
-                });
+            isDeviceFound = false;
+            isBleScanning = false;
 
-                Log.d(BLE_TAG, bluetoothAdapter.getBondedDevices().toString());
-                ScanFilter nameFilter = new ScanFilter.Builder()
-//                        .setServiceUuid(ParcelUuid.fromString(SERVICE_UUID))
-                        .setDeviceName("T8")
-                        .build();
-                List<ScanFilter> filters = new ArrayList<>();
-                filters.add(nameFilter);
-                ScanSettings scanSettings = new ScanSettings.Builder()
-                        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            progressBar.setVisibility(View.VISIBLE);
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    tvInfo.setText("Searching for a Nirog Scan...");
+                }
+            });
+
+            Log.d(BLE_TAG, bluetoothAdapter.getBondedDevices().toString());
+            ScanFilter nameFilter = new ScanFilter.Builder()
+                    .setServiceUuid(ParcelUuid.fromString(SERVICE_UUID))
+//                        .setDeviceName("T8")
+                    .build();
+            List<ScanFilter> filters = new ArrayList<>();
+            filters.add(nameFilter);
+            ScanSettings scanSettings = new ScanSettings.Builder()
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
 //                        .setCallbackType(ScanSettings.CALLBACK_TYPE_FIRST_MATCH)
 //                        .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
-                        .build();
+                    .build();
 
-                bleScanner = bluetoothAdapter.getBluetoothLeScanner();
-                scanCallback = new ScanCallback() {
-                    @Override
-                    public void onScanResult(int callbackType, android.bluetooth.le.ScanResult result) {
-                        super.onScanResult(callbackType, result);
+            bleScanner = bluetoothAdapter.getBluetoothLeScanner();
+            scanCallback = new ScanCallback() {
+                @Override
+                public void onScanResult(int callbackType, android.bluetooth.le.ScanResult result) {
+                    super.onScanResult(callbackType, result);
 //                        Log.i("ScanCallback", "Found BLE device! Name: " + result.getDevice().getName() + ", address: " + result.getDevice().getAddress());
-                        if(!isDeviceFound) {
-                            isDeviceFound = true;
-                            Log.i(BLE_TAG, "Found BLE device! Name: " + result.getDevice().getName() + ", address: " + result.getDevice().getAddress());
-                            if (isBleScanning) {
-                                isBleScanning = false;
-                                stopBleScan();
-                            }
-                            nirogScanDevice = result.getDevice();
-                            Log.w(BLE_TAG, "Connecting to " + nirogScanDevice.getAddress());
-                            new Handler(Looper.getMainLooper()).post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                        nirogScanDevice.connectGatt(
-                                                getContext(),
-                                                false,
-                                                gattCallback,
-                                                BluetoothDevice.TRANSPORT_LE,
-                                                BluetoothDevice.PHY_LE_CODED);
-                                    }
-                                    else {
-                                        nirogScanDevice.connectGatt(
-                                                getContext(),
-                                                true,
-                                                gattCallback,
-                                                BluetoothDevice.TRANSPORT_LE);
-                                    }
-                                }
-                            });
-
+                    if(!isDeviceFound) {
+                        isDeviceFound = true;
+                        Log.i(BLE_TAG, "Found BLE device! Name: " + result.getDevice().getName() + ", address: " + result.getDevice().getAddress());
+                        if (isBleScanning) {
+                            isBleScanning = false;
+                            stopBleScan();
                         }
-                    }
+                        nirogScanDevice = result.getDevice();
+                        Log.w(BLE_TAG, "Connecting to " + nirogScanDevice.getAddress());
+                        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    nirogScanDevice.connectGatt(
+                                            getContext(),
+                                            false,
+                                            gattCallback,
+                                            BluetoothDevice.TRANSPORT_LE,
+                                            BluetoothDevice.PHY_LE_CODED);
+                                }
+                                else {
+                                    nirogScanDevice.connectGatt(
+                                            getContext(),
+                                            true,
+                                            gattCallback,
+                                            BluetoothDevice.TRANSPORT_LE);
+                                }
+                            }
+                        },500);
 
-                    @Override
-                    public void onScanFailed(int errorCode) {
-                        super.onScanFailed(errorCode);
-                        Log.e(BLE_TAG,"Error Code: " + errorCode);
-                        startBleScan();
                     }
-                };
-                bleScanner.startScan(filters, scanSettings, scanCallback);
-                isBleScanning = true;
-            }
+                }
+
+                @Override
+                public void onScanFailed(int errorCode) {
+                    super.onScanFailed(errorCode);
+                    Log.e(BLE_TAG,"Error Code: " + errorCode);
+                    startBleScan();
+                }
+            };
+//                bleScanner.stopScan(scanCallback);
+            bleScanner.startScan(filters, scanSettings, scanCallback);
+            isBleScanning = true;
         }
     }
 
     public void stopBleScan() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            bleScanner.stopScan(scanCallback);
-        }
+        bleScanner.stopScan(scanCallback);
         isBleScanning = false;
     }
 
@@ -469,16 +471,22 @@ public class AddDeviceFragment extends Fragment {
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     Log.w(BLE_TAG, "Successfully connected to " + deviceAddress);
                     btGatt = gatt;
-                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                         @Override
                         public void run() {
                             btGatt.discoverServices();
                         }
-                    });
+                    },500);
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                     Log.w(BLE_TAG, "Successfully disconnected from " + deviceAddress);
                     gatt.close();
-                    getParentFragmentManager().beginTransaction().remove(AddDeviceFragment.this).commit();
+                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Navigation.findNavController(requireActivity(),R.id.main_activity_nav_host).navigateUp();
+                        }
+                    });
+//                    getParentFragmentManager().beginTransaction().remove(AddDeviceFragment.this).commit();
                 }
             } else {
                 Log.w(BLE_TAG, "Error " + status + " encountered for " + deviceAddress + "! Disconnecting...");
@@ -582,12 +590,15 @@ public class AddDeviceFragment extends Fragment {
                 }
             });
 
-            fragmentManager = getFragmentManager();
-            fragmentManager.beginTransaction()
-                    .setReorderingAllowed(true)
-                    .add(R.id.fragmentContainerView, DisplayNameFragment.class,null)
-                    .commit();
-            fragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks,false);
+            DialogFragment newFragment = new DisplayNameFragment(AddDeviceFragment.this);
+            newFragment.show(getParentFragmentManager(), DisplayNameFragment.TAG);
+
+//            fragmentManager = getFragmentManager();
+//            fragmentManager.beginTransaction()
+//                    .setReorderingAllowed(true)
+//                    .add(R.id.fragmentContainerView, DisplayNameFragment.class,null)
+//                    .commit();
+//            fragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks,false);
         }
     };
 
@@ -620,7 +631,7 @@ public class AddDeviceFragment extends Fragment {
 
     private void createReadingsDocument(){
         Map<String,Object> readingDoc = new HashMap<>();
-        readingDoc.put("created", FieldValue.serverTimestamp());
+        readingDoc.put("created","" + Calendar.getInstance().getTimeInMillis());
         readingDoc.put("uuid",deviceID);
 
         // Add a new document with a generated ID
@@ -694,4 +705,26 @@ public class AddDeviceFragment extends Fragment {
                 });
     }
 
+    @Override
+    public void onSubmitDisplayName(DialogFragment dialog) {
+        Log.d(BLE_TAG,displayName);
+        initWifiScan();
+    }
+
+    @Override
+    public void onSubmitWifiPassword(DialogFragment dialog) {
+        Log.d(BLE_TAG, "SSID: " + wifiSsid + " Password: " + wifiPassword);
+        getActivity().unregisterReceiver(wifiScanReceiver);
+//            userID = deviceID = FCMtoken = displayName = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+        userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+//                deviceID = userID + "-01";
+//                displayName = "xxxxxxxxxxxxxxx";
+        String message = userID + "," + deviceID + "," + FCMtoken + "," + displayName + "," + wifiSsid + "," + wifiPassword;
+//            byte[] payload = message.getBytes(StandardCharsets.UTF_8);
+        BluetoothGattService service = btGatt.getService(UUID.fromString(SERVICE_UUID));
+
+        service.getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID))
+                .setValue(message);
+        btGatt.writeCharacteristic(service.getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID)));
+    }
 }

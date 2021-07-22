@@ -38,6 +38,7 @@ import java.util.TimeZone;
 
 public class Charts {
 
+    private static final String TAG = "Charts";
     public int bad_oxy_count = 0;
     public int bad_temp_count = 0;
     public int bad_hr_count = 0;
@@ -67,16 +68,16 @@ public class Charts {
             Object[] timestamp_keyset = readings.keySet().toArray();
             int readings_length = readings.keySet().size();
             if(readings_length > 0){
-                if(readings_length > 50) readings_length = 49;
-                Number time_diff =  (long)timestamp_keyset[0] - (long)timestamp_keyset[readings_length];
+                if(readings_length > 50) readings_length = 50;
+                Number time_diff =  (long)timestamp_keyset[0] - (long)timestamp_keyset[readings_length-1];
                 SimpleDateFormat dateformat;
                 if ((long) time_diff < (long) (3600 * 24 * 1000)) {
                     dateformat = new SimpleDateFormat("HH:mm");
                 } else {
                     dateformat = new SimpleDateFormat("dd-MM HH:mm");
                 }
-                for (float counter = 0f;counter < 50f;counter++) {
-                    Number timestamp = (Number)timestamp_keyset[readings_length-(int)counter];
+                for (float counter = 0f;counter < readings_length;counter++) {
+                    Number timestamp = (Number)timestamp_keyset[readings_length-1-(int)counter];
                     Date date = new Date((long) timestamp);
                     dateformat.setTimeZone(TimeZone.getTimeZone("GMT+5:30"));
                     String xaxis_timestamp = dateformat.format(date);
@@ -86,6 +87,7 @@ public class Charts {
                     temperature_entries.add(new Entry((float) counter, readings.get(timestamp).get("temperature").floatValue()));
                     heartrate_entries.add(new Entry((float) counter, readings.get(timestamp).get("heartrate").floatValue()));
                 }
+                Log.d(TAG,timestamp_string.toString());
             }
 
     }
@@ -295,7 +297,11 @@ public class Charts {
         ValueFormatter formatter = new ValueFormatter() {
             @Override
             public String getAxisLabel(float value, AxisBase axis) {
-                return xvalue.get(value);
+                String label;
+                if(value < 0) label = "";
+                else if(value > xvalue.size()-1) label = "";
+                else label = xvalue.get(value);
+                return label;
             }
         };
         xAxis.setLabelCount(xvalue.size());
@@ -324,14 +330,18 @@ public class Charts {
         ValueFormatter formatter = new ValueFormatter() {
             @Override
             public String getAxisLabel(float value, AxisBase axis) {
-                return timestamp_string.get(value);
+                String label;
+                if(value < 0) label = "";
+                else if(value >= timestamp_string.size()) label = "";
+                else label = timestamp_string.get(value);
+                return label;
             }
         };
 //        lineChart.setVisibleXRange(0f,50f);
         XAxis xAxis = lineChart.getXAxis();
         xAxis.setGranularity(1f);
+//        xAxis.setLabelCount(timestamp_string.size(),true);
         xAxis.setValueFormatter(formatter);
-
 
         LineData data = new LineData(setData);
         data.setDrawValues(false);

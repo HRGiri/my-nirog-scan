@@ -2,6 +2,7 @@ package com.example.mynirogscan;
 
 import android.os.Bundle;
 
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
 import android.util.Log;
@@ -17,36 +18,34 @@ import android.widget.TextView;
  * Use the {@link WiFiSelectFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class WiFiSelectFragment extends Fragment {
+public class WiFiSelectFragment extends DialogFragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "ssid";
-//    private static final String ARG_PARAM2 = "param2";
-//
-//    // TODO: Rename and change types of parameters
+    public interface WifiSelectDialogListener {
+        void onSubmitWifiPassword(DialogFragment dialog);
+    }
+    WifiSelectDialogListener listener;
+    public static final String FRAGMENT_TAG = "WiFiFragment";
     private String ssid;
-//    private String mParam2;
-    private static final String FRAGMENT_TAG = "WiFiFragment";
+    private AddDeviceFragment parentFragment;
 
     public WiFiSelectFragment() {
         // Required empty public constructor
     }
+    public WiFiSelectFragment(Fragment parent, String ssid){
+        this.ssid = ssid;
+        parentFragment = (AddDeviceFragment) parent;
+        // Verify that the host activity implements the callback interface
+        try {
+            // Instantiate the NoticeDialogListener so we can send events to the host
+            listener = (WifiSelectDialogListener) parent;
+        } catch (ClassCastException e) {
+            // The activity doesn't implement the interface, throw exception
+            throw new ClassCastException("Must implement SettingsDialogListener");
+        }
+    }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @return A new instance of fragment WiFiSelectFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static WiFiSelectFragment newInstance(String param1) {
+    public static WiFiSelectFragment newInstance() {
         WiFiSelectFragment fragment = new WiFiSelectFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-//        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
         return fragment;
     }
 
@@ -54,10 +53,6 @@ public class WiFiSelectFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            ssid = getArguments().getString(ARG_PARAM1);
-//            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
     }
 
     @Override
@@ -73,12 +68,13 @@ public class WiFiSelectFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 Log.d(FRAGMENT_TAG,passInput.getText().toString().trim());
-                AddDeviceActivity activity = (AddDeviceActivity) getActivity();
-                if(activity != null) {
-                    activity.wifiSsid = ssid;
-                    activity.wifiPassword = passInput.getText().toString().trim();
+                if(parentFragment != null) {
+                    parentFragment.wifiSsid = ssid;
+                    parentFragment.wifiPassword = passInput.getText().toString().trim();
                 }
-                getParentFragmentManager().beginTransaction().remove(WiFiSelectFragment.this).commit();
+                listener.onSubmitWifiPassword(WiFiSelectFragment.this);
+                dismiss();
+//                getParentFragmentManager().beginTransaction().remove(WiFiSelectFragment.this).commit();
             }
         });
         return view;

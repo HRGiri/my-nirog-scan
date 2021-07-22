@@ -21,6 +21,7 @@ import android.widget.Spinner;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -100,14 +101,20 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
                     for(Map<String,String> map:deviceList){
                         deviceNames.add(map.get(Constants.NAME_FIELD_NAME));
                     }
-                    // Create the instance of ArrayAdapter
-                    ArrayAdapter adapter = new ArrayAdapter(getContext(),
-                            android.R.layout.simple_spinner_item,
-                            deviceNames);
+                    if(deviceNames.size()>0) {
+                        view.findViewById(R.id.devices_nav_host).setVisibility(View.VISIBLE);
+                        // Create the instance of ArrayAdapter
+                        ArrayAdapter adapter = new ArrayAdapter(requireContext(),
+                                android.R.layout.simple_spinner_item,
+                                deviceNames);
 
-                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                    // Apply the adapter to the spinner
-                    dropDown.setAdapter(adapter);
+                        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                        // Apply the adapter to the spinner
+                        dropDown.setAdapter(adapter);
+                    }
+                    else {
+                        view.findViewById(R.id.devices_nav_host).setVisibility(View.GONE);
+                    }
                 });
             }
         });
