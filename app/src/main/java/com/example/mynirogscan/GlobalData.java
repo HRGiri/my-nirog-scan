@@ -266,7 +266,7 @@ public class GlobalData extends ViewModel {
         for(DocumentSnapshot curr_doc : deviceReadingsDocuments){
             Map<String,Map<String,Number>> curr_device_readings = (Map<String,Map<String,Number>>)curr_doc.get("previous_readings");
             if(curr_device_readings == null)
-                return;
+                continue;
             for(String key: curr_device_readings.keySet())
             {
                 Long int_key = Long.parseLong(key);
@@ -277,7 +277,6 @@ public class GlobalData extends ViewModel {
             }
         }
         all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings).descendingMap();
-//        Log.d(TAG,"sorted list "+all_readings_sorted.keySet());
         globalAllReadingsSorted.setValue(all_readings_sorted);
         globalIsInit.setValue(true);
     }
