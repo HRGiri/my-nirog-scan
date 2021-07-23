@@ -338,8 +338,7 @@ public class AddDeviceFragment extends Fragment
             progressBar.setVisibility(View.VISIBLE);
             getActivity().runOnUiThread(new Runnable() {
                 @Override
-                public void run() {
-                    tvInfo.setText("Searching for a Nirog Scan...");
+                public void run() { tvInfo.setText("Searching for a Nirog Scan...");
                 }
             });
 
