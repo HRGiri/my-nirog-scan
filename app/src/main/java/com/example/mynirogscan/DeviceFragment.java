@@ -177,17 +177,21 @@ public class DeviceFragment extends Fragment {
                     globalData.getGlobalUserData().observe(requireActivity(), usersData->{
                         userData = usersData;
                     });
+                    globalData.getGlobalDeviceData().observe(requireActivity(),deviceData->{
+                        if(deviceData.size()==0){
+                            noDeviceInfo.setVisibility(View.VISIBLE);
+                            scrollview.setVisibility(View.GONE);
+                        }
+                        else {
+                            noDeviceInfo.setVisibility(View.INVISIBLE);
+                            scrollview.setVisibility(View.VISIBLE);
+                        }
+                    });
                     globalData.getAllReadingsSorted().observe(requireActivity(),sortedReadings->{
                         all_readings_sorted = globalData.getDeviceReadingsSorted(deviceId);
                         if(all_readings_sorted.size() > 0) {
-                            noDeviceInfo.setVisibility(View.INVISIBLE);
-                            scrollview.setVisibility(View.VISIBLE);
                             update_top_table();
                             populate_daily_visit_chart();
-                        }
-                        else {
-                            noDeviceInfo.setVisibility(View.VISIBLE);
-                            scrollview.setVisibility(View.GONE);
                         }
                     });
                 }
