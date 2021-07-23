@@ -19,6 +19,9 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
@@ -39,6 +42,8 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
     private Button addDeviceButton;
     private Button configureButton;
     private GlobalData globalData;
+
+    private String FCMToken;
 
 
     public DevicesScreen() {
@@ -72,8 +77,8 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
             public void onClick(View view) {
                 DevicesScreenDirections.ActionDevicesScreenToAddDeviceFragment action = DevicesScreenDirections.actionDevicesScreenToAddDeviceFragment();
                 //TODO: Set arguments
-                action.setDEVICEID(null);
-                action.setFCMToken(null);
+                action.setDEVICEID(generateDeviceId());
+                action.setFCMToken(FCMToken);
                 Navigation.findNavController(getActivity(),R.id.main_activity_nav_host)
                         .navigate(action);
             }
@@ -97,6 +102,8 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
             if(isInit){
                 globalData.getGlobalUserData().observe(requireActivity(),userData->{
                     deviceList = (ArrayList<Map<String, String>>) userData.get(Constants.DEVICE_LIST_FIELD_NAME);
+                    FCMToken = (String)userData.get(Constants.FCM_TOKEN_FIELD_NAME);
+                    Log.d("Device Screen","Fcm token : "+ FCMToken);
                     deviceNames = new ArrayList<>();
                     for(Map<String,String> map:deviceList){
                         deviceNames.add(map.get(Constants.NAME_FIELD_NAME));
@@ -147,4 +154,20 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
         SettingsFragment fragment = (SettingsFragment)dialog;
         Log.d("Settings",fragment.etWifiPass.getText().toString());
     }
-}
+
+    private String generateDeviceId(){
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if(deviceList == null){
+            return currentUser.getUid() + "-001";
+        }
+        else
+            return String.format(currentUser.getUid() + "-%03d",deviceList.size() + 1);
+        }
+
+
+    }
+
+
+
+

@@ -127,6 +127,7 @@ public class AddDeviceFragment extends Fragment
 //            deviceID = getArguments().getString(HomeFragment.DEVICE_ID_EXTRA);
 //        }
         FCMtoken = AddDeviceFragmentArgs.fromBundle(getArguments()).getFCMToken();
+        Log.d("Add device fragment","Fcm token : "+ FCMtoken);
         deviceID = AddDeviceFragmentArgs.fromBundle(getArguments()).getDEVICEID();
     }
 
