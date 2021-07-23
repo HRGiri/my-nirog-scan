@@ -275,7 +275,7 @@ public class HomeFragment extends Fragment {
                                 if(task.isSuccessful()) {
                                     if (task.getResult().exists()) {
                                         Log.d(TAG, "Google Found it");
-                                        createFCMtoken();
+//                                        createFCMtoken();
                                         getGlobalData();
                                     } else {
                                         Log.d(TAG, "Google sign In Lets register you");

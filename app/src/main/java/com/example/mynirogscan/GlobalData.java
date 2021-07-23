@@ -25,6 +25,8 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,6 +57,7 @@ public class GlobalData extends ViewModel {
     private MutableLiveData<Map<Number, Map<String, Number>>> globalAllReadingsSorted = new MutableLiveData<>();
     private Boolean isInit = false;
     private MutableLiveData<Boolean> globalIsInit = new MutableLiveData<>(false);
+    private String fcmToken;
 
     public void init(){
         mAuth = FirebaseAuth.getInstance();
@@ -279,6 +282,7 @@ public class GlobalData extends ViewModel {
         all_readings_sorted = new TreeMap<Number,Map<String,Number>>(all_readings).descendingMap();
         globalAllReadingsSorted.setValue(all_readings_sorted);
         globalIsInit.setValue(true);
+        createFCMtoken();
     }
 
     public Map<Number,Map<String,Number>> getDeviceReadingsSorted(String deviceID){
@@ -288,6 +292,50 @@ public class GlobalData extends ViewModel {
                 deviceReadings.put(key,all_readings_sorted.get(key));
         }
         return deviceReadings;
+    }
+
+    private void createFCMtoken(){
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(new OnCompleteListener<String>() {
+                    @Override
+                    public void onComplete(@NonNull Task<String> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                            return;
+                        }
+                        // Get new FCM registration token
+                        fcmToken = task.getResult();
+                        Log.d(TAG,"Token: "+ fcmToken + "\nis new? : " + !fcmToken.equals(String.valueOf(userData.get("FCMToken"))));
+                        if (!fcmToken.equals(String.valueOf(userData.get("FCMToken"))))
+                            updateFCMToken();
+                    }
+                });
+    }
+
+    //Update FCM Token in DataBase.
+    private void updateFCMToken(){
+        // Get a new write batch
+        WriteBatch batch = firestore.batch();
+
+        Map<String, String> user = new HashMap<>();
+        user.put("FCMToken", fcmToken);
+        FirebaseUser curruser = FirebaseAuth.getInstance().getCurrentUser();
+        DocumentReference userRef = firestore.collection("users").document(curruser.getUid());
+        batch.set(userRef, user, SetOptions.merge());
+
+        for(DocumentSnapshot doc : deviceDataDocuments){
+            Map<String, String> device = new HashMap<>();
+            device.put(FCM_TOKEN_FIELD_NAME, fcmToken);
+            batch.set(doc.getReference(),device,SetOptions.merge());
+        }
+
+        // Commit the batch
+        batch.commit().addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                Log.d(TAG, "FCM token updated! + "+ fcmToken);
+            }
+        });
     }
 
     public void removeListeners(){
