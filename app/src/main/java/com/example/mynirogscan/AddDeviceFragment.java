@@ -554,6 +554,9 @@ public class AddDeviceFragment extends Fragment
                     initWifiScan();
                     break;
                 case "COMPLETED":
+                    btGatt.disconnect();
+                    break;
+                case "CONN_SUCCESS":
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -644,7 +647,9 @@ public class AddDeviceFragment extends Fragment
                     @Override
                     public void onSuccess(DocumentReference documentReference) {
                         Log.d(FIREBASE_TAG, "DocumentSnapshot add with id " + documentReference.getId());
-                        btGatt.disconnect();
+                        BluetoothGattService service = btGatt.getService(UUID.fromString(SERVICE_UUID));
+                        service.getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID)).setValue("SUCCESS");
+                        btGatt.writeCharacteristic(service.getCharacteristic(UUID.fromString(WRITE_CHARACTERISTIC_UUID)));
                         getActivity().runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
