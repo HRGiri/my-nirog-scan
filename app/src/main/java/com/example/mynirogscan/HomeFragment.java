@@ -244,6 +244,11 @@ public class HomeFragment extends Fragment {
     }
 
     @Override
+    public void onDestroy() {
+        globalData.getIsInit().removeObservers(requireActivity());
+        super.onDestroy();
+    }
+    @Override
     public void onStart() {
         super.onStart();
     }

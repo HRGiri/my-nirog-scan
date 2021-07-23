@@ -49,7 +49,12 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
     public DevicesScreen() {
         // Required empty public constructor
     }
-
+    
+    @Override
+    public void onDestroy() {
+        globalData.getIsInit().removeObservers(requireActivity());
+        super.onDestroy();
+    }
     public static DevicesScreen newInstance() {
         return new DevicesScreen();
     }
@@ -102,7 +107,7 @@ public class DevicesScreen extends Fragment implements SettingsFragment.Settings
             if(isInit){
                 globalData.getGlobalUserData().observe(requireActivity(),userData->{
                     deviceList = (ArrayList<Map<String, String>>) userData.get(Constants.DEVICE_LIST_FIELD_NAME);
-                    FCMToken = (String)userData.get(Constants.FCM_TOKEN_FIELD_NAME);
+                    FCMToken = (String)userData.get("FCMToken");
                     Log.d("Device Screen","Fcm token : "+ FCMToken);
                     deviceNames = new ArrayList<>();
                     for(Map<String,String> map:deviceList){
